@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReReviewer.Server", "ReReviewer.Server\ReReviewer.Server.csproj", "{EF3B0275-779C-44B0-B462-B89657AC3EA1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReReviewer.Application", "ReReviewer.Application\ReReviewer.Application.csproj", "{0128FA8D-D925-4DAE-9386-8E4CA6FC306D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReReviewer.Data", "ReReviewer.Data\ReReviewer.Data.csproj", "{792C4688-A950-4247-80A9-8F3DE26B8C53}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{EF3B0275-779C-44B0-B462-B89657AC3EA1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EF3B0275-779C-44B0-B462-B89657AC3EA1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EF3B0275-779C-44B0-B462-B89657AC3EA1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EF3B0275-779C-44B0-B462-B89657AC3EA1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0128FA8D-D925-4DAE-9386-8E4CA6FC306D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0128FA8D-D925-4DAE-9386-8E4CA6FC306D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0128FA8D-D925-4DAE-9386-8E4CA6FC306D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0128FA8D-D925-4DAE-9386-8E4CA6FC306D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{792C4688-A950-4247-80A9-8F3DE26B8C53}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{792C4688-A950-4247-80A9-8F3DE26B8C53}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{792C4688-A950-4247-80A9-8F3DE26B8C53}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{792C4688-A950-4247-80A9-8F3DE26B8C53}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
