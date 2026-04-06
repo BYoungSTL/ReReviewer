@@ -1,6 +1,9 @@
 ﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
+using ReReviewer.Data;
+
 
 namespace ReReviewer
 {
@@ -26,7 +29,8 @@ namespace ReReviewer
 
             GetConfigs(services);
             AddServices(services);
-
+            ConfigureDatabase(services);
+            
             services.AddControllers();
             services.AddEndpointsApiExplorer();
             services.AddSwaggerGen(c =>
@@ -120,6 +124,12 @@ namespace ReReviewer
         private void GetConfigs(IServiceCollection services)
         {
             
+        }
+
+        private void ConfigureDatabase(IServiceCollection services)
+        {
+            var connectionString = Configuration.GetConnectionString("DefaultConnection");
+            services.AddDbContext<ReReviewerDbContext>(options => options.UseSqlServer(connectionString));
         }
     }
 }
