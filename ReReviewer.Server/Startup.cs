@@ -128,7 +128,7 @@ namespace ReReviewer
 
         private void ConfigureDatabase(IServiceCollection services)
         {
-            var connectionString = Configuration.GetConnectionString("DefaultConnection");
+            var connectionString = Configuration.GetConnectionString("ReReviewerDB");
             services.AddDbContext<ReReviewerDbContext>(options => options.UseSqlServer(connectionString));
         }
     }
