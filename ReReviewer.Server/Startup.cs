@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using ReReviewer.Data;
+using ReReviewer.Data.CRUD;
+using ReReviewer.Data.Interfaces;
 
 
 namespace ReReviewer
@@ -118,7 +120,16 @@ namespace ReReviewer
 
         private static void AddServices(IServiceCollection services)
         {
-
+            services.AddScoped<IUserService, UserService>();
+            services.AddScoped<IRoleService, RoleService>();
+            services.AddScoped<IReviewerService, ReviewerService>();
+            services.AddScoped<IOutletService, OutletService>();
+            services.AddScoped<IBadgeService, BadgeService>();
+            services.AddScoped<IGenreService, GenreService>();
+            services.AddScoped<IGameService, GameService>();
+            services.AddScoped<IMaterialService, MaterialService>();
+            services.AddScoped<ICriterionService, CriterionService>();
+            services.AddScoped<IReviewService, ReviewService>();
         }
 
         private void GetConfigs(IServiceCollection services)
