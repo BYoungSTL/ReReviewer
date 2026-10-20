@@ -39,6 +39,14 @@ public class BaseService<TEntity, TKey>(ReReviewerDbContext context) : IBaseServ
         await Context.SaveChangesAsync(cancellationToken);
     }
 
+    // Для методов, которым запись нужна обязательно: вместо null бросает KeyNotFoundException
+    // с сообщением вида "Review not found.".
+    protected async Task<TEntity> GetRequiredAsync(TKey id, CancellationToken cancellationToken = default)
+    {
+        return await Set.FindAsync([id], cancellationToken)
+            ?? throw new KeyNotFoundException($"{typeof(TEntity).Name} not found.");
+    }
+
     public virtual async Task<bool> DeleteAsync(TKey id, CancellationToken cancellationToken = default)
     {
         var entity = await Set.FindAsync([id], cancellationToken);

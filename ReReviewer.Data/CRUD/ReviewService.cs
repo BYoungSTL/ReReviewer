@@ -20,32 +20,30 @@ public class ReviewService(ReReviewerDbContext context) : BaseService<Review, Gu
 
     public async Task<Review> CreateAsync(Guid userId, Guid reviewerId, ReviewInput input, CancellationToken cancellationToken = default)
     {
-        var review = new Review
+        // Новые записи создаются как прокси, чтобы у возвращённого отзыва лениво подгружались
+        // Reviewer, User и Criterion; у объекта из обычного new этого не будет.
+        var review = Set.CreateProxy(r =>
         {
-            UserId = userId,
-            ReviewerId = reviewerId,
-            Text = input.Text,
-            Score = input.Score,
-            Status = ReviewStatus.Pending
-        };
+            r.UserId = userId;
+            r.ReviewerId = reviewerId;
+            r.Text = input.Text;
+            r.Score = input.Score;
+            r.Status = ReviewStatus.Pending;
+        });
 
         foreach (var material in await LoadMaterialsAsync(input.MaterialIds, cancellationToken))
             review.Materials.Add(material);
 
         foreach (var (criterionId, score) in input.CriterionScores)
-            review.CriterionScores.Add(new ReviewCriterionScore { CriterionId = criterionId, Score = score });
+            review.CriterionScores.Add(CreateScore(criterionId, score));
 
         return await AddAsync(review, cancellationToken);
     }
 
+    // Materials и CriterionScores подгружаются лениво при первом обращении в Sync-методах.
     public async Task<Review> EditAsync(Guid reviewId, Guid userId, ReviewInput input, CancellationToken cancellationToken = default)
     {
-        var review = await Set
-            .Include(r => r.Materials)
-            .Include(r => r.CriterionScores)
-            .AsSingleQuery()
-            .FirstOrDefaultAsync(r => r.Id == reviewId, cancellationToken)
-            ?? throw new KeyNotFoundException("Review not found.");
+        var review = await GetRequiredAsync(reviewId, cancellationToken);
 
         if (review.UserId != userId)
             throw new UnauthorizedAccessException("Only the author can edit this review.");
@@ -66,8 +64,7 @@ public class ReviewService(ReReviewerDbContext context) : BaseService<Review, Gu
 
     public async Task DeleteOwnAsync(Guid reviewId, Guid userId, CancellationToken cancellationToken = default)
     {
-        var review = await Set.FindAsync([reviewId], cancellationToken)
-            ?? throw new KeyNotFoundException("Review not found.");
+        var review = await GetRequiredAsync(reviewId, cancellationToken);
 
         if (review.UserId != userId)
             throw new UnauthorizedAccessException("Only the author can delete this review.");
@@ -78,8 +75,7 @@ public class ReviewService(ReReviewerDbContext context) : BaseService<Review, Gu
 
     public async Task SetStatusAsync(Guid reviewId, ReviewStatus status, CancellationToken cancellationToken = default)
     {
-        var review = await Set.FindAsync([reviewId], cancellationToken)
-            ?? throw new KeyNotFoundException("Review not found.");
+        var review = await GetRequiredAsync(reviewId, cancellationToken);
 
         review.Status = status;
         await Context.SaveChangesAsync(cancellationToken);
@@ -103,17 +99,16 @@ public class ReviewService(ReReviewerDbContext context) : BaseService<Review, Gu
 
     #region Queries
 
+    // Навигации (Materials, CriterionScores, Reviewer) подгружаются лениво: отдельный запрос
+    // на каждую навигацию каждого отзыва. Для списков на API лучше проецировать в ViewModel через Select.
     public async Task<IReadOnlyList<Review>> GetPublishedByReviewerAsync(Guid reviewerId, int skip = 0, int take = 20, CancellationToken cancellationToken = default)
     {
         return await Set
             .AsNoTracking()
-            .Include(r => r.Materials)
-            .Include(r => r.CriterionScores).ThenInclude(s => s.Criterion)
             .Where(r => r.ReviewerId == reviewerId && r.Status == ReviewStatus.Published)
             .OrderByDescending(r => r.CreatedAt).ThenBy(r => r.Id)
             .Skip(Math.Max(skip, 0))
             .Take(Math.Clamp(take, 1, MaxPageSize))
-            .AsSplitQuery()
             .ToListAsync(cancellationToken);
     }
 
@@ -121,12 +116,8 @@ public class ReviewService(ReReviewerDbContext context) : BaseService<Review, Gu
     {
         return await Set
             .AsNoTracking()
-            .Include(r => r.Reviewer)
-            .Include(r => r.Materials)
-            .Include(r => r.CriterionScores).ThenInclude(s => s.Criterion)
             .Where(r => r.UserId == userId)
             .OrderByDescending(r => r.CreatedAt).ThenBy(r => r.Id)
-            .AsSplitQuery()
             .ToListAsync(cancellationToken);
     }
 
@@ -214,7 +205,7 @@ public class ReviewService(ReReviewerDbContext context) : BaseService<Review, Gu
             review.Materials.Add(added);
     }
 
-    private static void SyncCriterionScores(Review review, IReadOnlyDictionary<int, byte> criterionScores)
+    private void SyncCriterionScores(Review review, IReadOnlyDictionary<int, byte> criterionScores)
     {
         foreach (var removed in review.CriterionScores.Where(s => !criterionScores.ContainsKey(s.CriterionId)).ToList())
             review.CriterionScores.Remove(removed);
@@ -225,9 +216,16 @@ public class ReviewService(ReReviewerDbContext context) : BaseService<Review, Gu
             if (existing is not null)
                 existing.Score = score;
             else
-                review.CriterionScores.Add(new ReviewCriterionScore { CriterionId = criterionId, Score = score });
+                review.CriterionScores.Add(CreateScore(criterionId, score));
         }
     }
+
+    private ReviewCriterionScore CreateScore(int criterionId, byte score) =>
+        Context.CreateProxy<ReviewCriterionScore>(s =>
+        {
+            s.CriterionId = criterionId;
+            s.Score = score;
+        });
 
     #endregion
 }
