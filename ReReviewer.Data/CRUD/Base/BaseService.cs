@@ -11,15 +11,11 @@ public class BaseService<TEntity, TKey>(ReReviewerDbContext context) : IBaseServ
 
     protected DbSet<TEntity> Set => Context.Set<TEntity>();
 
-    public virtual async Task<TEntity?> GetByIdAsync(TKey id, CancellationToken cancellationToken = default)
-    {
-        return await Set.FindAsync([id], cancellationToken);
-    }
+    public virtual async Task<TEntity?> GetByIdAsync(TKey id, CancellationToken cancellationToken = default) =>
+        await Set.FindAsync([id], cancellationToken);
 
-    public virtual async Task<IReadOnlyList<TEntity>> GetAllAsync(CancellationToken cancellationToken = default)
-    {
-        return await Set.AsNoTracking().ToListAsync(cancellationToken);
-    }
+    public virtual async Task<IReadOnlyList<TEntity>> GetAllAsync(CancellationToken cancellationToken = default) =>
+        await Set.AsNoTracking().ToListAsync(cancellationToken);
 
     public virtual async Task<TEntity> AddAsync(TEntity entity, CancellationToken cancellationToken = default)
     {
@@ -41,11 +37,9 @@ public class BaseService<TEntity, TKey>(ReReviewerDbContext context) : IBaseServ
 
     // Для методов, которым запись нужна обязательно: вместо null бросает KeyNotFoundException
     // с сообщением вида "Review not found.".
-    protected async Task<TEntity> GetRequiredAsync(TKey id, CancellationToken cancellationToken = default)
-    {
-        return await Set.FindAsync([id], cancellationToken)
+    protected async Task<TEntity> GetRequiredAsync(TKey id, CancellationToken cancellationToken = default) =>
+        await Set.FindAsync([id], cancellationToken)
             ?? throw new KeyNotFoundException($"{typeof(TEntity).Name} not found.");
-    }
 
     public virtual async Task<bool> DeleteAsync(TKey id, CancellationToken cancellationToken = default)
     {
