@@ -11,10 +11,7 @@ public class OutletService(ReReviewerDbContext context) : BaseService<Outlet, Gu
     // От переданных объектов берётся только Id: они могут прийти из запроса неотслеживаемыми.
     public async Task<Outlet> LinkReviewersAsync(Guid outletId, List<Reviewer> reviewers)
     {
-        var outlet = await Set
-            .Include(o => o.Reviewers).ThenInclude(link => link.Reviewer)
-            .FirstOrDefaultAsync(o => o.Id == outletId)
-            ?? throw new KeyNotFoundException("Outlet not found.");
+        var outlet = await GetRequiredAsync(outletId);
 
         var reviewerIds = reviewers.Select(r => r.Id).Distinct().ToList();
         var found = await Context.Reviewers
@@ -24,8 +21,9 @@ public class OutletService(ReReviewerDbContext context) : BaseService<Outlet, Gu
         if (found.Count != reviewerIds.Count)
             throw new KeyNotFoundException("One or more reviewers not found.");
 
-        foreach (var reviewer in found.Where(r => outlet.Reviewers.All(link => link.ReviewerId != r.Id)))
-            outlet.Reviewers.Add(new ReviewerOutlet { Reviewer = reviewer });
+        // outlet.Reviewers подгружается лениво при первом обращении.
+        foreach (var reviewer in found.Where(r => outlet.Reviewers.All(link => link.ReviewerId != r.Id)).ToList())
+            outlet.Reviewers.Add(Context.CreateProxy<ReviewerOutlet>(link => link.Reviewer = reviewer));
 
         await Context.SaveChangesAsync();
 

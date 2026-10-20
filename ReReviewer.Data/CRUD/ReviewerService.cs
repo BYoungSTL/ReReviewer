@@ -12,8 +12,7 @@ public class ReviewerService(ReReviewerDbContext context) : BaseService<Reviewer
     // Кто имеет право подтверждать, проверяется на уровне контроллера, например только модератор.
     public async Task<Reviewer> ValidateReviewerAsync(Reviewer reviewer, Guid userId)
     {
-        var profile = await Set.FindAsync(reviewer.Id)
-            ?? throw new KeyNotFoundException("Reviewer not found.");
+        var profile = await GetRequiredAsync(reviewer.Id);
 
         if (profile.UserId == userId)
             return profile;
@@ -37,10 +36,7 @@ public class ReviewerService(ReReviewerDbContext context) : BaseService<Reviewer
     // Материал другого обзорщика не переносится: на него могут ссылаться отзывы о том обзорщике.
     public async Task<Reviewer> LinkMaterialsAsync(Reviewer reviewer, List<Material> materials)
     {
-        var profile = await Set
-            .Include(r => r.Materials)
-            .FirstOrDefaultAsync(r => r.Id == reviewer.Id)
-            ?? throw new KeyNotFoundException("Reviewer not found.");
+        var profile = await GetRequiredAsync(reviewer.Id);
 
         var ids = materials.Where(m => m.Id != Guid.Empty).Select(m => m.Id).ToList();
         var existing = await Context.Materials
@@ -51,21 +47,22 @@ public class ReviewerService(ReReviewerDbContext context) : BaseService<Reviewer
         if (foreign is not null)
             throw new ValidationException($"Material {foreign.Id} belongs to another reviewer.");
 
-        // Новые материалы копируются, а не добавляются как есть: переданные объекты могут нести
+        // Новые материалы копируются в прокси, а не добавляются как есть: переданные объекты могут нести
         // неотслеживаемые Game или Outlet, и EF попытался бы вставить их в базу заново.
+        // profile.Materials подгружается лениво при первом обращении.
         foreach (var material in materials.Where(m => !existing.ContainsKey(m.Id)))
         {
-            profile.Materials.Add(new Material
+            profile.Materials.Add(Context.CreateProxy<Material>(m =>
             {
-                Id = material.Id,
-                GameId = material.GameId,
-                OutletId = material.OutletId,
-                Title = material.Title,
-                Url = material.Url,
-                Format = material.Format,
-                OriginalScore = material.OriginalScore,
-                PublishedAt = material.PublishedAt
-            });
+                m.Id = material.Id;
+                m.GameId = material.GameId;
+                m.OutletId = material.OutletId;
+                m.Title = material.Title;
+                m.Url = material.Url;
+                m.Format = material.Format;
+                m.OriginalScore = material.OriginalScore;
+                m.PublishedAt = material.PublishedAt;
+            }));
         }
 
         await Context.SaveChangesAsync();
