@@ -133,6 +133,15 @@ namespace ReReviewer
             services.AddScoped<ICriterionService, CriterionService>();
             services.AddScoped<IReviewService, ReviewService>();
 
+            services.AddScoped<IUserAppService, UserAppService>();
+            services.AddScoped<IRoleAppService, RoleAppService>();
+            services.AddScoped<IReviewerAppService, ReviewerAppService>();
+            services.AddScoped<IOutletAppService, OutletAppService>();
+            services.AddScoped<IBadgeAppService, BadgeAppService>();
+            services.AddScoped<IGenreAppService, GenreAppService>();
+            services.AddScoped<IGameAppService, GameAppService>();
+            services.AddScoped<IMaterialAppService, MaterialAppService>();
+            services.AddScoped<ICriterionAppService, CriterionAppService>();
             services.AddScoped<IReviewAppService, ReviewAppService>();
         }
 

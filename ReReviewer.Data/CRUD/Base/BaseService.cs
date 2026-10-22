@@ -17,6 +17,19 @@ public class BaseService<TEntity, TKey>(ReReviewerDbContext context) : IBaseServ
     public virtual async Task<IReadOnlyList<TEntity>> GetAllAsync(CancellationToken cancellationToken = default) =>
         await Set.AsNoTracking().ToListAsync(cancellationToken);
 
+    // Записи загружаются с отслеживанием, чтобы их можно было добавить в навигации другой сущности
+    // (например, жанры игры). Если хотя бы одного Id нет, бросает KeyNotFoundException.
+    public virtual async Task<IReadOnlyList<TEntity>> GetByIdsAsync(IEnumerable<TKey> ids, CancellationToken cancellationToken = default)
+    {
+        var idList = ids.Distinct().ToList();
+        var entities = await Set.Where(e => idList.Contains(e.Id)).ToListAsync(cancellationToken);
+
+        if (entities.Count != idList.Count)
+            throw new KeyNotFoundException($"One or more {typeof(TEntity).Name} records were not found.");
+
+        return entities;
+    }
+
     public virtual async Task<TEntity> AddAsync(TEntity entity, CancellationToken cancellationToken = default)
     {
         Set.Add(entity);

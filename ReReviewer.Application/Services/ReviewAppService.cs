@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using ReReviewer.Application.Interfaces;
+using ReReviewer.Application.Services.Base;
 using ReReviewer.Application.ViewModels;
 using ReReviewer.Data.Entities;
 using ReReviewer.Data.Entities.Enums;
@@ -24,13 +25,8 @@ public class ReviewAppService(IReviewService reviewService) : IReviewAppService
         return reviews.Select(ToViewModel).ToList();
     }
 
-    public async Task<ReviewViewModel> GetReviewAsync(Guid reviewId)
-    {
-        var review = await reviewService.GetByIdAsync(reviewId)
-            ?? throw new KeyNotFoundException("Review not found.");
-
-        return ToViewModel(review);
-    }
+    public async Task<ReviewViewModel> GetReviewAsync(Guid reviewId) =>
+        ToViewModel(await reviewService.GetRequiredAsync(reviewId));
 
     // Без Id создаёт отзыв, с Id — правит существующий (только автор; обзорщик у отзыва не меняется).
     // После сохранения в переданную модель записываются Id, статус и даты.
