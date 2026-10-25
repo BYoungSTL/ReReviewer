@@ -2,6 +2,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
+using ReReviewer.Application.Interfaces;
+using ReReviewer.Application.Services;
 using ReReviewer.Data;
 using ReReviewer.Data.CRUD;
 using ReReviewer.Data.Interfaces;
@@ -130,6 +132,17 @@ namespace ReReviewer
             services.AddScoped<IMaterialService, MaterialService>();
             services.AddScoped<ICriterionService, CriterionService>();
             services.AddScoped<IReviewService, ReviewService>();
+
+            services.AddScoped<IUserAppService, UserAppService>();
+            services.AddScoped<IRoleAppService, RoleAppService>();
+            services.AddScoped<IReviewerAppService, ReviewerAppService>();
+            services.AddScoped<IOutletAppService, OutletAppService>();
+            services.AddScoped<IBadgeAppService, BadgeAppService>();
+            services.AddScoped<IGenreAppService, GenreAppService>();
+            services.AddScoped<IGameAppService, GameAppService>();
+            services.AddScoped<IMaterialAppService, MaterialAppService>();
+            services.AddScoped<ICriterionAppService, CriterionAppService>();
+            services.AddScoped<IReviewAppService, ReviewAppService>();
         }
 
         private void GetConfigs(IServiceCollection services)

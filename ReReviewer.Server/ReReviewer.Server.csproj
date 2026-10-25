@@ -23,6 +23,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\ReReviewer.Data\ReReviewer.Data.csproj" />
+      <ProjectReference Include="..\ReReviewer.Application\ReReviewer.Application.csproj" />
     </ItemGroup>
 
 </Project>

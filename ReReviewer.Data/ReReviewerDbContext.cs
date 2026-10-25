@@ -154,10 +154,8 @@ public class ReReviewerDbContext : DbContext
             .OnDelete(DeleteBehavior.SetNull);
     }
 
-    private void ReviewerOutletConfiguration(EntityTypeBuilder<ReviewerOutlet> builder)
-    {
+    private void ReviewerOutletConfiguration(EntityTypeBuilder<ReviewerOutlet> builder) =>
         builder.HasKey(e => new { e.ReviewerId, e.OutletId });
-    }
 
     private void BadgeConfiguration(EntityTypeBuilder<Badge> builder)
     {

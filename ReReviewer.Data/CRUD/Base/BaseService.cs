@@ -11,14 +11,23 @@ public class BaseService<TEntity, TKey>(ReReviewerDbContext context) : IBaseServ
 
     protected DbSet<TEntity> Set => Context.Set<TEntity>();
 
-    public virtual async Task<TEntity?> GetByIdAsync(TKey id, CancellationToken cancellationToken = default)
-    {
-        return await Set.FindAsync([id], cancellationToken);
-    }
+    public virtual async Task<TEntity?> GetByIdAsync(TKey id, CancellationToken cancellationToken = default) =>
+        await Set.FindAsync([id], cancellationToken);
 
-    public virtual async Task<IReadOnlyList<TEntity>> GetAllAsync(CancellationToken cancellationToken = default)
+    public virtual async Task<IReadOnlyList<TEntity>> GetAllAsync(CancellationToken cancellationToken = default) =>
+        await Set.AsNoTracking().ToListAsync(cancellationToken);
+
+    // Записи загружаются с отслеживанием, чтобы их можно было добавить в навигации другой сущности
+    // (например, жанры игры). Если хотя бы одного Id нет, бросает KeyNotFoundException.
+    public virtual async Task<IReadOnlyList<TEntity>> GetByIdsAsync(IEnumerable<TKey> ids, CancellationToken cancellationToken = default)
     {
-        return await Set.AsNoTracking().ToListAsync(cancellationToken);
+        var idList = ids.Distinct().ToList();
+        var entities = await Set.Where(e => idList.Contains(e.Id)).ToListAsync(cancellationToken);
+
+        if (entities.Count != idList.Count)
+            throw new KeyNotFoundException($"One or more {typeof(TEntity).Name} records were not found.");
+
+        return entities;
     }
 
     public virtual async Task<TEntity> AddAsync(TEntity entity, CancellationToken cancellationToken = default)
@@ -41,11 +50,9 @@ public class BaseService<TEntity, TKey>(ReReviewerDbContext context) : IBaseServ
 
     // Для методов, которым запись нужна обязательно: вместо null бросает KeyNotFoundException
     // с сообщением вида "Review not found.".
-    protected async Task<TEntity> GetRequiredAsync(TKey id, CancellationToken cancellationToken = default)
-    {
-        return await Set.FindAsync([id], cancellationToken)
+    protected async Task<TEntity> GetRequiredAsync(TKey id, CancellationToken cancellationToken = default) =>
+        await Set.FindAsync([id], cancellationToken)
             ?? throw new KeyNotFoundException($"{typeof(TEntity).Name} not found.");
-    }
 
     public virtual async Task<bool> DeleteAsync(TKey id, CancellationToken cancellationToken = default)
     {

@@ -100,26 +100,36 @@ public class ReviewService(ReReviewerDbContext context) : BaseService<Review, Gu
     #region Queries
 
     // Навигации (Materials, CriterionScores, Reviewer) подгружаются лениво: отдельный запрос
-    // на каждую навигацию каждого отзыва. Для списков на API лучше проецировать в ViewModel через Select.
-    public async Task<IReadOnlyList<Review>> GetPublishedByReviewerAsync(Guid reviewerId, int skip = 0, int take = 20, CancellationToken cancellationToken = default)
-    {
-        return await Set
+    // на каждую навигацию каждого отзыва.
+    public async Task<IReadOnlyList<Review>> GetPublishedByReviewerAsync(Guid reviewerId, int skip = 0, int take = 20, CancellationToken cancellationToken = default) =>
+        await PublishedByReviewer(reviewerId)
             .AsNoTracking()
-            .Where(r => r.ReviewerId == reviewerId && r.Status == ReviewStatus.Published)
             .OrderByDescending(r => r.CreatedAt).ThenBy(r => r.Id)
             .Skip(Math.Max(skip, 0))
             .Take(Math.Clamp(take, 1, MaxPageSize))
             .ToListAsync(cancellationToken);
-    }
 
-    public async Task<IReadOnlyList<Review>> GetByUserAsync(Guid userId, CancellationToken cancellationToken = default)
-    {
-        return await Set
+    public async Task<int> CountPublishedByReviewerAsync(Guid reviewerId, CancellationToken cancellationToken = default) =>
+        await PublishedByReviewer(reviewerId).CountAsync(cancellationToken);
+
+    // Очередь модерации: первым идёт отзыв, который ждёт дольше всех (с момента создания или последней правки).
+    public async Task<IReadOnlyList<Review>> GetPendingAsync(int skip = 0, int take = 20, CancellationToken cancellationToken = default) =>
+        await Pending()
+            .AsNoTracking()
+            .OrderBy(r => r.UpdatedAt ?? r.CreatedAt).ThenBy(r => r.Id)
+            .Skip(Math.Max(skip, 0))
+            .Take(Math.Clamp(take, 1, MaxPageSize))
+            .ToListAsync(cancellationToken);
+
+    public async Task<int> CountPendingAsync(CancellationToken cancellationToken = default) =>
+        await Pending().CountAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<Review>> GetByUserAsync(Guid userId, CancellationToken cancellationToken = default) =>
+        await Set
             .AsNoTracking()
             .Where(r => r.UserId == userId)
             .OrderByDescending(r => r.CreatedAt).ThenBy(r => r.Id)
             .ToListAsync(cancellationToken);
-    }
 
     // В рейтинг идут только опубликованные отзывы.
     public async Task<ReviewerRating> GetReviewerRatingAsync(Guid reviewerId, CancellationToken cancellationToken = default)
@@ -127,7 +137,7 @@ public class ReviewService(ReReviewerDbContext context) : BaseService<Review, Gu
         if (!await Context.Reviewers.AnyAsync(r => r.Id == reviewerId, cancellationToken))
             throw new KeyNotFoundException("Reviewer not found.");
 
-        var published = Set.Where(r => r.ReviewerId == reviewerId && r.Status == ReviewStatus.Published);
+        var published = PublishedByReviewer(reviewerId);
 
         var reviewCount = await published.CountAsync(cancellationToken);
         double? averageScore = reviewCount == 0
@@ -147,6 +157,12 @@ public class ReviewService(ReReviewerDbContext context) : BaseService<Review, Gu
     #endregion
 
     #region Helpers
+
+    private IQueryable<Review> PublishedByReviewer(Guid reviewerId) =>
+        Set.Where(r => r.ReviewerId == reviewerId && r.Status == ReviewStatus.Published);
+
+    private IQueryable<Review> Pending() =>
+        Set.Where(r => r.Status == ReviewStatus.Pending);
 
     private async Task ValidateAsync(Review review, CancellationToken cancellationToken)
     {
