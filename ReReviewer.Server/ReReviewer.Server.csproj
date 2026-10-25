@@ -5,6 +5,7 @@
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
         <RootNamespace>ReReviewer</RootNamespace>
+        <UserSecretsId>6e97eadb-5be4-4b0c-accb-19fe5b10a338</UserSecretsId>
     </PropertyGroup>
 
     <ItemGroup>
@@ -24,6 +25,10 @@
     <ItemGroup>
       <ProjectReference Include="..\ReReviewer.Data\ReReviewer.Data.csproj" />
       <ProjectReference Include="..\ReReviewer.Application\ReReviewer.Application.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Controllers\" />
     </ItemGroup>
 
 </Project>
