@@ -1,5 +1,8 @@
-﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+﻿using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using ReReviewer.Application.Interfaces;
@@ -7,6 +10,8 @@ using ReReviewer.Application.Services;
 using ReReviewer.Data;
 using ReReviewer.Data.CRUD;
 using ReReviewer.Data.Interfaces;
+using ReReviewer.Middleware;
+using ReReviewer.Security;
 
 
 namespace ReReviewer
@@ -36,88 +41,59 @@ namespace ReReviewer
             ConfigureDatabase(services);
             
             services.AddControllers();
+            // api/auth/login, а не api/Auth/login: и в Swagger, и в ссылках из CreatedAtAction.
+            services.AddRouting(options => options.LowercaseUrls = true);
             services.AddEndpointsApiExplorer();
             services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new OpenApiInfo());
+                // Кнопка Authorize в Swagger UI: токен вставляется без префикса, "Bearer " Swagger добавит сам.
                 c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
                 {
-                    Description = @"JWT Authorization header using the Bearer scheme. \r\n\r\n 
-                      Enter 'Bearer' [space] and then your token in the text input below.
-                      \r\n\r\nExample: 'Bearer 12345abcdef'",
+                    Description = "JWT from POST /api/auth/login. Paste the token only, Swagger adds the Bearer prefix.",
                     Name = "Authorization",
                     In = ParameterLocation.Header,
-                    Type = SecuritySchemeType.ApiKey,
-                    Scheme = "Bearer"
+                    Type = SecuritySchemeType.Http,
+                    Scheme = "bearer",
+                    BearerFormat = "JWT"
                 });
-
-                // c.AddSecurityRequirement(new OpenApiSecurityRequirement()
-                // {
-                //     {
-                //         new OpenApiSecurityScheme
-                //         {
-                //             Reference = new OpenApiReference
-                //             {
-                //                 Type = ReferenceType.SecurityScheme,
-                //                 Id = "Bearer"
-                //             },
-                //             Scheme = "oauth2",
-                //             Name = "Bearer",
-                //             In = ParameterLocation.Header,
-                //
-                //         },
-                //         new List<string>()
-                //     }
-                // });
+                c.AddSecurityRequirement(document => new OpenApiSecurityRequirement
+                {
+                    [new OpenApiSecuritySchemeReference("Bearer", document)] = []
+                });
             });
 
-            services.AddAuthorization();
-            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-                .AddJwtBearer(options =>
-                {
-                    options.TokenValidationParameters = new TokenValidationParameters
-                    {
-                        // ValidateIssuer = true,
-                        // ValidIssuer = AuthOptions.ISSUER,
-                        // ValidateAudience = true,
-                        // ValidAudience = AuthOptions.AUDIENCE,
-                        // ValidateLifetime = true,
-                        // IssuerSigningKey = AuthOptions.GetSymmetricSecurityKey(),
-                        // ValidateIssuerSigningKey = true,
-                    };
-                });
+            ConfigureAuthentication(services);
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
+            // Первым звеном, чтобы ловить исключения из всех следующих, включая контроллеры.
+            // Заменяет и страницу ошибок для разработчика: в Development подробности уходят в ответ.
+            app.UseMiddleware<ExceptionHandlingMiddleware>();
+
             if (env.IsDevelopment())
             {
-                app.UseDeveloperExceptionPage();
                 app.UseSwagger();
                 app.UseSwaggerUI();
             }
             else
             {
-                app.UseExceptionHandler("/Error");
                 app.UseHsts();
             }
 
-            app.UseCors("_origins");
             app.UseHttpsRedirection();
-            app.UseStaticFiles();
-            app.UseRouting();
-
-            app.UseEndpoints(endpoints =>
-            {
-                endpoints.MapControllerRoute(
-                    name: "default",
-                    pattern: "api/{controller=Home}");
-            });
-
             app.UseDefaultFiles();
             app.UseStaticFiles();
 
-            app.UseHttpsRedirection();
+            // CORS — между маршрутизацией и авторизацией, как требует ASP.NET Core.
+            app.UseRouting();
+            app.UseCors("_origins");
+            app.UseAuthentication();
+            app.UseAuthorization();
+
+            // Маршруты задаются атрибутами контроллеров (см. BaseController).
+            app.UseEndpoints(endpoints => endpoints.MapControllers());
         }
 
         private static void AddServices(IServiceCollection services)
@@ -143,11 +119,51 @@ namespace ReReviewer
             services.AddScoped<IMaterialAppService, MaterialAppService>();
             services.AddScoped<ICriterionAppService, CriterionAppService>();
             services.AddScoped<IReviewAppService, ReviewAppService>();
+            services.AddScoped<IAuthAppService, AuthAppService>();
+
+            services.AddSingleton<IJwtTokenService, JwtTokenService>();
         }
 
-        private void GetConfigs(IServiceCollection services)
+        // Без корректных настроек JWT сервер не стартует, а не падает на первом входе.
+        private void GetConfigs(IServiceCollection services) =>
+            services.AddOptions<JwtOptions>()
+                .Bind(Configuration.GetSection(JwtOptions.SectionName))
+                .Validate(jwt => !string.IsNullOrWhiteSpace(jwt.Issuer) && !string.IsNullOrWhiteSpace(jwt.Audience),
+                    "Jwt:Issuer and Jwt:Audience must be set.")
+                .Validate(jwt => Encoding.UTF8.GetByteCount(jwt.SigningKey) >= JwtOptions.MinSigningKeyBytes,
+                    $"Jwt:SigningKey must be at least {JwtOptions.MinSigningKeyBytes} bytes. "
+                    + "Set it with dotnet user-secrets or the Jwt__SigningKey environment variable.")
+                .Validate(jwt => jwt.LifetimeMinutes > 0, "Jwt:LifetimeMinutes must be positive.")
+                .ValidateOnStart();
+
+        private static void ConfigureAuthentication(IServiceCollection services)
         {
-            
+            services.AddAuthorization();
+            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer();
+
+            // Параметры проверки берутся из JwtOptions при первом запросе, а не при сборке сервисов,
+            // поэтому dotnet ef и другие инструменты, собирающие хост без ключа, не падают.
+            services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
+                .Configure<IOptions<JwtOptions>>((bearer, jwtOptions) =>
+                {
+                    var jwt = jwtOptions.Value;
+
+                    // Claims не переименовываются: sub, name и role остаются как в токене (см. JwtTokenService).
+                    bearer.MapInboundClaims = false;
+                    bearer.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuer = true,
+                        ValidIssuer = jwt.Issuer,
+                        ValidateAudience = true,
+                        ValidAudience = jwt.Audience,
+                        ValidateLifetime = true,
+                        ClockSkew = TimeSpan.FromMinutes(1),
+                        ValidateIssuerSigningKey = true,
+                        IssuerSigningKey = jwt.CreateSigningKey(),
+                        NameClaimType = JwtRegisteredClaimNames.Name,
+                        RoleClaimType = "role"
+                    };
+                });
         }
 
         private void ConfigureDatabase(IServiceCollection services)

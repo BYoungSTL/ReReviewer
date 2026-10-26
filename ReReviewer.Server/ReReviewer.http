@@ -1,6 +1,28 @@
 @ReReviewer_HostAddress = http://localhost:5070
 
-GET {{ReReviewer_HostAddress}}/weatherforecast/
+### Регистрация
+POST {{ReReviewer_HostAddress}}/api/auth/register
+Content-Type: application/json
+
+{
+  "name": "player",
+  "email": "player@example.com",
+  "password": "change-me-123"
+}
+
+### Вход: токен из ответа подставляется в запросы ниже
+# @name login
+POST {{ReReviewer_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "player@example.com",
+  "password": "change-me-123"
+}
+
+### Текущий пользователь
+GET {{ReReviewer_HostAddress}}/api/auth/me
+Authorization: Bearer {{login.response.body.token}}
 Accept: application/json
 
 ###
