@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi;
+using ReReviewer.ApiDocs;
 using ReReviewer.Application.Interfaces;
 using ReReviewer.Application.Services;
 using ReReviewer.Data;
@@ -12,6 +12,7 @@ using ReReviewer.Data.CRUD;
 using ReReviewer.Data.Interfaces;
 using ReReviewer.Middleware;
 using ReReviewer.Security;
+using Scalar.AspNetCore;
 
 
 namespace ReReviewer
@@ -44,26 +45,14 @@ namespace ReReviewer
             // для не-nullable строк отключён: иначе, например, жанр во вложенном списке игры без Title,
             // где нужен только Id, отклонялся бы ещё до сервиса.
             services.AddControllers(options => options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true);
-            // api/auth/login, а не api/Auth/login: и в Swagger, и в ссылках из CreatedAtAction.
+            // api/auth/login, а не api/Auth/login: и в документации, и в ссылках из CreatedAtAction.
             services.AddRouting(options => options.LowercaseUrls = true);
-            services.AddEndpointsApiExplorer();
-            services.AddSwaggerGen(c =>
+
+            // Встроенный генератор OpenAPI (документ по контроллерам), интерфейс — Scalar (см. Configure).
+            services.AddOpenApi(options =>
             {
-                c.SwaggerDoc("v1", new OpenApiInfo());
-                // Кнопка Authorize в Swagger UI: токен вставляется без префикса, "Bearer " Swagger добавит сам.
-                c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-                {
-                    Description = "JWT from POST /api/auth/login. Paste the token only, Swagger adds the Bearer prefix.",
-                    Name = "Authorization",
-                    In = ParameterLocation.Header,
-                    Type = SecuritySchemeType.Http,
-                    Scheme = "bearer",
-                    BearerFormat = "JWT"
-                });
-                c.AddSecurityRequirement(document => new OpenApiSecurityRequirement
-                {
-                    [new OpenApiSecuritySchemeReference("Bearer", document)] = []
-                });
+                options.AddDocumentTransformer<ApiDocumentTransformer>();
+                options.AddOperationTransformer<AuthorizationOperationTransformer>();
             });
 
             ConfigureAuthentication(services);
@@ -75,15 +64,8 @@ namespace ReReviewer
             // Заменяет и страницу ошибок для разработчика: в Development подробности уходят в ответ.
             app.UseMiddleware<ExceptionHandlingMiddleware>();
 
-            if (env.IsDevelopment())
-            {
-                app.UseSwagger();
-                app.UseSwaggerUI();
-            }
-            else
-            {
+            if (!env.IsDevelopment())
                 app.UseHsts();
-            }
 
             app.UseHttpsRedirection();
             app.UseDefaultFiles();
@@ -95,8 +77,22 @@ namespace ReReviewer
             app.UseAuthentication();
             app.UseAuthorization();
 
-            // Маршруты задаются атрибутами контроллеров (см. BaseController).
-            app.UseEndpoints(endpoints => endpoints.MapControllers());
+            app.UseEndpoints(endpoints =>
+            {
+                // Маршруты задаются атрибутами контроллеров (см. BaseController).
+                endpoints.MapControllers();
+
+                // Документация только в Development: документ на /openapi/v1.json, интерфейс на /scalar.
+                // Токен в Scalar сохраняется в браузере и переживает перезагрузку страницы.
+                if (env.IsDevelopment())
+                {
+                    endpoints.MapOpenApi();
+                    endpoints.MapScalarApiReference(options => options
+                        .WithTitle("ReReviewer API")
+                        .AddPreferredSecuritySchemes([ApiDocumentTransformer.BearerSchemeName])
+                        .EnablePersistentAuthentication());
+                }
+            });
         }
 
         private static void AddServices(IServiceCollection services)
