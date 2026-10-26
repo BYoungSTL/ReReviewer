@@ -40,7 +40,10 @@ namespace ReReviewer
             AddServices(services);
             ConfigureDatabase(services);
             
-            services.AddControllers();
+            // Обязательность полей проверяют AppService'ы (ValidationException → 400). Неявный [Required]
+            // для не-nullable строк отключён: иначе, например, жанр во вложенном списке игры без Title,
+            // где нужен только Id, отклонялся бы ещё до сервиса.
+            services.AddControllers(options => options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true);
             // api/auth/login, а не api/Auth/login: и в Swagger, и в ссылках из CreatedAtAction.
             services.AddRouting(options => options.LowercaseUrls = true);
             services.AddEndpointsApiExplorer();
