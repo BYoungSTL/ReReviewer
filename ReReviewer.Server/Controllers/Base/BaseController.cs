@@ -1,6 +1,7 @@
 ﻿using System.Security.Authentication;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
+using ReReviewer.Security;
 
 namespace ReReviewer.Controllers.Base;
 
@@ -20,7 +21,15 @@ public abstract class BaseController : ControllerBase
     // Id пользователя из JWT (claim sub / NameIdentifier). Брать автора отзыва и т. п. только отсюда,
     // а не из тела запроса. Без валидного Id — AuthenticationException, middleware ответит 401.
     protected Guid CurrentUserId =>
+        CurrentUserIdOrNull ?? throw new AuthenticationException("User is not authenticated.");
+
+    // Для методов, открытых без входа: null, если запрос пришёл без токена.
+    protected Guid? CurrentUserIdOrNull =>
         Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub"), out var userId)
             ? userId
-            : throw new AuthenticationException("User is not authenticated.");
+            : null;
+
+    // Администратор или модератор.
+    protected bool IsStaff =>
+        User.IsInRole(RoleNames.Admin) || User.IsInRole(RoleNames.Moderator);
 }
