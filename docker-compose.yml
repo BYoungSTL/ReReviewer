@@ -1,0 +1,82 @@
+# Весь ReReviewer в Docker: SQL Server, миграции и API.
+#
+#   cp .env.example .env            # и заполнить секреты
+#   docker compose up --build -d    # база → миграции → API на http://localhost:8080 (Scalar: /scalar)
+#   docker compose --profile seed run --rm seed     # по желанию: тестовые данные из ReReviewer.Data/Scripts
+#   docker compose down             # остановить; с -v — удалить и данные базы
+#
+# Порядок старта: db (ждём, пока SQL Server ответит) → migrate (применяет миграции и завершается) → api.
+
+name: rereviewer
+
+x-connection-string: &connection-string "Server=db;Database=ReReviewerDB;User Id=sa;Password=${MSSQL_SA_PASSWORD};TrustServerCertificate=true"
+
+services:
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: Developer
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?Set MSSQL_SA_PASSWORD in .env (see .env.example)}
+    # 14333, а не 1433: на компьютере разработчика 1433 обычно занят локальным SQL Server.
+    # Подключение из Rider/SSMS: localhost,14333, пользователь sa.
+    ports:
+      - "14333:1433"
+    volumes:
+      - db-data:/var/opt/mssql
+    # sqlcmd в образе SQL Server 2022 лежит в mssql-tools18, в старых сборках — в mssql-tools.
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -C -Q 'SELECT 1' -b -o /dev/null || /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -Q 'SELECT 1' -b -o /dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  migrate:
+    build:
+      context: .
+      dockerfile: ReReviewer.Server/Dockerfile
+      target: migrate
+    environment:
+      ConnectionStrings__ReReviewerDB: *connection-string
+    depends_on:
+      db:
+        condition: service_healthy
+
+  api:
+    build:
+      context: .
+      dockerfile: ReReviewer.Server/Dockerfile
+      target: final
+    environment:
+      # Development — чтобы были доступны /openapi/v1.json и /scalar.
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+      ConnectionStrings__ReReviewerDB: *connection-string
+      Jwt__SigningKey: ${JWT_SIGNING_KEY:?Set JWT_SIGNING_KEY in .env (see .env.example)}
+    ports:
+      - "${API_PORT:-8080}:8080"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  # Тестовые данные: docker compose --profile seed run --rm seed
+  # Повторный запуск безопасен — скрипт ничего не делает, если данные уже загружены.
+  seed:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    profiles: ["seed"]
+    environment:
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?Set MSSQL_SA_PASSWORD in .env (see .env.example)}
+    volumes:
+      - ./ReReviewer.Data/Scripts:/scripts:ro
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        SQLCMD=/opt/mssql-tools18/bin/sqlcmd; [ -x "$$SQLCMD" ] || SQLCMD=/opt/mssql-tools/bin/sqlcmd;
+        "$$SQLCMD" -S db -U sa -P "$$MSSQL_SA_PASSWORD" -C -d ReReviewerDB -f 65001 -b -i /scripts/SeedTestData.sql
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+volumes:
+  db-data:

@@ -1,0 +1,21 @@
+# Результаты сборки — в контейнере всё собирается заново
+**/bin/
+**/obj/
+
+# IDE, git и служебные папки (в .claude/worktrees лежат полные копии репозитория)
+.git/
+.gitignore
+.idea/
+.vs/
+.vscode/
+.claude/
+**/*.user
+
+# Секреты и локальные настройки
+.env
+**/secrets.json
+
+# Сами файлы Docker в образ не нужны
+**/Dockerfile
+.dockerignore
+docker-compose*.yml
