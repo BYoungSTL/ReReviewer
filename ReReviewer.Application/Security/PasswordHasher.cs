@@ -18,16 +18,27 @@ public static class PasswordHasher
         return $"{Iterations}.{Convert.ToBase64String(salt)}.{Convert.ToBase64String(hash)}";
     }
 
+    // Повреждённый хэш в базе считается неподошедшим паролем: вход должен ответить 401, а не 500.
     public static bool Verify(string password, string passwordHash)
     {
         var parts = passwordHash.Split('.');
-        if (parts.Length != 3 || !int.TryParse(parts[0], out var iterations))
+        if (parts.Length != 3 || !int.TryParse(parts[0], out var iterations) || iterations <= 0)
             return false;
 
-        var salt = Convert.FromBase64String(parts[1]);
-        var expected = Convert.FromBase64String(parts[2]);
+        if (!TryFromBase64(parts[1], out var salt) || !TryFromBase64(parts[2], out var expected) || expected.Length == 0)
+            return false;
+
         var actual = Rfc2898DeriveBytes.Pbkdf2(password, salt, iterations, HashAlgorithmName.SHA512, expected.Length);
 
         return CryptographicOperations.FixedTimeEquals(actual, expected);
+    }
+
+    private static bool TryFromBase64(string value, out byte[] bytes)
+    {
+        var buffer = new byte[value.Length];
+        var ok = Convert.TryFromBase64String(value, buffer, out var written);
+        bytes = buffer[..written];
+
+        return ok;
     }
 }
