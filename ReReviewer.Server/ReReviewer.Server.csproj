@@ -5,25 +5,28 @@
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
         <RootNamespace>ReReviewer</RootNamespace>
+        <UserSecretsId>6e97eadb-5be4-4b0c-accb-19fe5b10a338</UserSecretsId>
     </PropertyGroup>
 
     <ItemGroup>
         <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.5" />
-        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.5" />
+        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.13" />
         <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.5" />
         <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.5">
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
           <PrivateAssets>all</PrivateAssets>
         </PackageReference>
         <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.5" />
-        <PackageReference Include="Swashbuckle.AspNetCore.Swagger" Version="10.1.7" />
-        <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="10.1.7" />
-        <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="10.1.7" />
+        <PackageReference Include="Scalar.AspNetCore" Version="2.18.3" />
     </ItemGroup>
 
     <ItemGroup>
       <ProjectReference Include="..\ReReviewer.Data\ReReviewer.Data.csproj" />
       <ProjectReference Include="..\ReReviewer.Application\ReReviewer.Application.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Controllers\" />
     </ItemGroup>
 
 </Project>
