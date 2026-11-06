@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.VisualStudio.JavaScript.Sdk/1.0.7204101">
+
+    <!-- Проект нужен, чтобы сайт был виден в решении: Rider показывает его в дереве Solution со всеми файлами,
+         кроме node_modules и .next. Собирается сайт командами npm (см. README.md), поэтому MSBuild npm не запускает.
+         В сборку решения проект тоже не входит: в ReReviewer.sln у него нет строк Build.0. -->
+    <PropertyGroup>
+        <ShouldRunNpmInstall>false</ShouldRunNpmInstall>
+        <ShouldRunNpmAudit>false</ShouldRunNpmAudit>
+        <ShouldRunBuildScript>false</ShouldRunBuildScript>
+        <!-- Кэш tsc, в git его тоже нет. -->
+        <DefaultItemExcludes>$(DefaultItemExcludes);*.tsbuildinfo</DefaultItemExcludes>
+    </PropertyGroup>
+
+</Project>
