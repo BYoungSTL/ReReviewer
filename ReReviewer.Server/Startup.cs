@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -44,7 +45,16 @@ namespace ReReviewer
             // Обязательность полей проверяют AppService'ы (ValidationException → 400). Неявный [Required]
             // для не-nullable строк отключён: иначе, например, жанр во вложенном списке игры без Title,
             // где нужен только Id, отклонялся бы ещё до сервиса.
-            services.AddControllers(options => options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true);
+            services.AddControllers(options =>
+                {
+                    options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true;
+                    options.Conventions.Add(new SuccessResponseConvention());
+                })
+                // Числа только числами: по умолчанию принимается и "8", и тогда в OpenAPI у каждого числа
+                // тип integer | string, а в сгенерированном клиенте фронтенда — number | string.
+                .AddJsonOptions(options => options.JsonSerializerOptions.NumberHandling = JsonNumberHandling.Strict);
+            // Генератор OpenAPI строит схемы по этим настройкам, а не по настройкам MVC выше.
+            services.ConfigureHttpJsonOptions(options => options.SerializerOptions.NumberHandling = JsonNumberHandling.Strict);
             // api/auth/login, а не api/Auth/login: и в документации, и в ссылках из CreatedAtAction.
             services.AddRouting(options => options.LowercaseUrls = true);
 

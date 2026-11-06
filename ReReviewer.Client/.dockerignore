@@ -1,0 +1,18 @@
+# Зависимости и сборка — в контейнере всё ставится и собирается заново
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+
+# Локальные настройки и секреты
+.env*
+!.env.example
+
+# Сами файлы Docker в образ не нужны
+Dockerfile
+.dockerignore
+
+# Служебные файлы MSBuild для Rider, сайту они не нужны
+bin/
+obj/
+*.esproj
