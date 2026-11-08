@@ -16,6 +16,9 @@ export const isGuid = (value: string) =>
 export const reviewerTag = (id: string) =>
   `reviewer:${id}`;
 
+// Отзывы и рейтинги всех обзорщиков: например, удаление пользователя убирает его отзывы сразу у нескольких обзорщиков.
+export const REVIEWS_TAG = "reviews";
+
 export async function getReviewers() {
   "use cache";
   cacheLife("minutes");
@@ -40,7 +43,7 @@ export async function getReviewer(id: string) {
 export async function getReviewerRating(id: string) {
   "use cache";
   cacheLife("minutes");
-  cacheTag(reviewerTag(id));
+  cacheTag(reviewerTag(id), REVIEWS_TAG);
 
   const { data, response } = await publicApi.GET("/api/reviewers/{id}/rating", { params: { path: { id } } });
   if (response.status === 404) return null;
@@ -72,7 +75,7 @@ export async function getCriteria() {
 export async function getReviewerReviews(id: string, page = 1) {
   "use cache";
   cacheLife("minutes");
-  cacheTag(reviewerTag(id));
+  cacheTag(reviewerTag(id), REVIEWS_TAG);
 
   const { data, response } = await publicApi.GET("/api/reviewers/{id}/reviews", {
     params: { path: { id }, query: { page, pageSize: REVIEWS_PAGE_SIZE } },

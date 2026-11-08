@@ -50,6 +50,8 @@ async function signIn(email: string, password: string): Promise<string | undefin
   try {
     const { data, error, response } = await publicApi.POST("/api/auth/login", { body: { email, password } });
     if (response.status === 401) return "Неверная почта или пароль.";
+    // API сообщает о блокировке только при верном пароле.
+    if (response.status === 403) return "Аккаунт заблокирован. Обратитесь к администрации сайта.";
     if (!data) return problemMessage(error, "Не удалось войти.");
 
     await saveToken(data.token, data.expiresAt);

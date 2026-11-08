@@ -172,6 +172,20 @@ namespace ReReviewer
                         NameClaimType = JwtRegisteredClaimNames.Name,
                         RoleClaimType = "role"
                     };
+
+                    // Токен действует до истечения срока, а заблокированный или удалённый пользователь должен
+                    // потерять доступ сразу. Поэтому на каждом запросе с токеном проверяется, что аккаунт активен.
+                    bearer.Events = new JwtBearerEvents
+                    {
+                        OnTokenValidated = async context =>
+                        {
+                            var users = context.HttpContext.RequestServices.GetRequiredService<IUserAppService>();
+                            var subject = context.Principal?.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+
+                            if (!Guid.TryParse(subject, out var userId) || !await users.IsActiveAsync(userId))
+                                context.Fail("The account is blocked or no longer exists.");
+                        }
+                    };
                 });
         }
 

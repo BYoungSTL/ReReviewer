@@ -66,6 +66,30 @@ public class AuthAppServiceTests
         await _users.DidNotReceiveWithAnyArgs().GetByEmailAsync(default!, default);
     }
 
+    [Fact]
+    public async Task LoginAsync_BlockedUser_ThrowsUnauthorizedAccess()
+    {
+        _user.BlockedAt = DateTime.UtcNow;
+
+        var exception = await Should.ThrowAsync<UnauthorizedAccessException>(
+            () => _auth.LoginAsync(new LoginViewModel { Email = Email, Password = Password }));
+
+        exception.Message.ShouldBe("This account is blocked.");
+        await _userApp.DidNotReceiveWithAnyArgs().GetUserAsync(default);
+    }
+
+    // О блокировке узнаёт только тот, кто знает пароль.
+    [Fact]
+    public async Task LoginAsync_BlockedUserWithWrongPassword_ThrowsInvalidCredentials()
+    {
+        _user.BlockedAt = DateTime.UtcNow;
+
+        var exception = await Should.ThrowAsync<AuthenticationException>(
+            () => _auth.LoginAsync(new LoginViewModel { Email = Email, Password = "wrong-password" }));
+
+        exception.Message.ShouldBe("Invalid email or password.");
+    }
+
     #endregion
 
     #region RegisterAsync

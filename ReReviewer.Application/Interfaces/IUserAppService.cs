@@ -10,4 +10,8 @@ public interface IUserAppService
     public Task DeleteUserAsync(Guid userId);
 
     public Task<UserViewModel> SetUserRolesAsync(Guid userId, List<int> roleIds);
+
+    public Task<UserViewModel> BlockUserAsync(Guid userId, Guid currentUserId);
+    public Task<UserViewModel> UnblockUserAsync(Guid userId);
+    public Task<bool> IsActiveAsync(Guid userId);
 }

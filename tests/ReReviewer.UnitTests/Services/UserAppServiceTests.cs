@@ -124,4 +124,62 @@ public class UserAppServiceTests
     }
 
     #endregion
+
+    #region Блокировка
+
+    [Fact]
+    public async Task BlockUserAsync_SetsBlockedAt()
+    {
+        var user = StoredUser();
+
+        var result = await _service.BlockUserAsync(user.Id, Guid.NewGuid());
+
+        user.BlockedAt.ShouldNotBeNull();
+        result.BlockedAt.ShouldBe(user.BlockedAt);
+        await _users.Received(1).UpdateAsync(user, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task BlockUserAsync_AlreadyBlocked_KeepsDate()
+    {
+        var blockedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        var user = StoredUser(blockedAt);
+
+        await _service.BlockUserAsync(user.Id, Guid.NewGuid());
+
+        user.BlockedAt.ShouldBe(blockedAt);
+    }
+
+    [Fact]
+    public async Task BlockUserAsync_Self_Throws()
+    {
+        var id = Guid.NewGuid();
+
+        var exception = await Should.ThrowAsync<ValidationException>(() => _service.BlockUserAsync(id, id));
+
+        exception.Message.ShouldBe("You cannot block yourself.");
+        await _users.DidNotReceiveWithAnyArgs().UpdateAsync(default!, default);
+    }
+
+    [Fact]
+    public async Task UnblockUserAsync_ClearsBlockedAt()
+    {
+        var user = StoredUser(DateTime.UtcNow);
+
+        var result = await _service.UnblockUserAsync(user.Id);
+
+        user.BlockedAt.ShouldBeNull();
+        result.BlockedAt.ShouldBeNull();
+        await _users.Received(1).UpdateAsync(user, Arg.Any<CancellationToken>());
+    }
+
+    private User StoredUser(DateTime? blockedAt = null)
+    {
+        var user = new User { Id = Guid.NewGuid(), Name = "player", Email = "player@test.local", BlockedAt = blockedAt };
+        _users.GetByIdAsync(user.Id, Arg.Any<CancellationToken>()).Returns(user);
+
+        return user;
+    }
+
+    #endregion
 }

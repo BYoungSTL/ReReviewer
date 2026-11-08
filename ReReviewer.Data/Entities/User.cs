@@ -9,6 +9,9 @@ public class User : Entity<Guid>
     public string PasswordHash { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
 
+    // Null — аккаунт активен. Заблокированный пользователь не может войти, а выданные ему токены не принимаются.
+    public DateTime? BlockedAt { get; set; }
+
     #region Virtual Properties
 
     public virtual ICollection<Role> Roles { get; set; } = [];
