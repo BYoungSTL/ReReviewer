@@ -27,6 +27,14 @@ const FORMAT_LABELS: Record<string, string> = {
 export const materialFormatLabel = (format: string) =>
   FORMAT_LABELS[format] ?? format;
 
+const ROLE_LABELS: Record<string, string> = {
+  Admin: "Администратор",
+  Moderator: "Модератор",
+};
+
+export const roleLabel = (role: string) =>
+  ROLE_LABELS[role] ?? role;
+
 // "1 отзыв", "3 отзыва", "5 отзывов".
 export function pluralize(count: number, one: string, few: string, many: string) {
   const mod10 = count % 10;

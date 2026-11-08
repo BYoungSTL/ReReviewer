@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { ReviewViewModel } from "@/lib/api/schema";
@@ -6,10 +7,13 @@ import { formatDate, reviewStatusLabel } from "@/lib/format";
 
 // Отзыв пользователя об обзорщике. На странице обзорщика ссылка на него не нужна (showReviewer = false),
 // в «Моих отзывах» — нужна. У своего отзыва (own) видны статус модерации и ссылка на правку.
-export function ReviewCard({ review, showReviewer = false, own = false }: {
+// meta дописывается в строку с датой, children — под отзывом (например, кнопки модерации).
+export function ReviewCard({ review, showReviewer = false, own = false, meta, children }: {
   review: ReviewViewModel;
   showReviewer?: boolean;
   own?: boolean;
+  meta?: ReactNode;
+  children?: ReactNode;
 }) {
   return (
     <Card>
@@ -27,6 +31,7 @@ export function ReviewCard({ review, showReviewer = false, own = false }: {
         <CardDescription>
           {formatDate(review.createdAt)}
           {own && <> · {reviewStatusLabel(review.status)}</>}
+          {meta && <> · {meta}</>}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
@@ -60,6 +65,7 @@ export function ReviewCard({ review, showReviewer = false, own = false }: {
             Изменить
           </Link>
         )}
+        {children}
       </CardContent>
     </Card>
   );

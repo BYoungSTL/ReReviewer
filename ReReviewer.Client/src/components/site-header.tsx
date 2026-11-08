@@ -2,12 +2,14 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { LogoutButton } from "@/components/logout-button";
 import { buttonVariants } from "@/components/ui/button";
+import { isStaff } from "@/lib/auth/roles";
 import { getCurrentUser } from "@/lib/auth/session";
 
 export function SiteHeader() {
   return (
     <header className="border-b">
-      <div className="mx-auto flex h-14 w-full max-w-5xl items-center justify-between gap-4 px-4">
+      {/* flex-wrap: на узком экране меню модератора не помещается рядом с названием и переносится на вторую строку. */}
+      <div className="mx-auto flex min-h-14 w-full max-w-5xl flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-2">
         <Link href="/" className="font-semibold tracking-tight">
           ReReviewer
         </Link>
@@ -37,6 +39,11 @@ async function UserMenu() {
 
   return (
     <nav className="flex items-center gap-2">
+      {isStaff(user) && (
+        <Link href="/admin/reviews" className={buttonVariants({ variant: "ghost", size: "sm" })}>
+          Модерация
+        </Link>
+      )}
       <Link href="/me" className={buttonVariants({ variant: "ghost", size: "sm" })}>
         Мои отзывы
       </Link>
