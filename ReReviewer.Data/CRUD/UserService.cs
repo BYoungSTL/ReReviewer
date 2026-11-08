@@ -9,4 +9,7 @@ public class UserService(ReReviewerDbContext context) : BaseService<User, Guid>(
 {
     public async Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default) =>
         await Set.FirstOrDefaultAsync(u => u.Email == email, cancellationToken);
+
+    public async Task<bool> IsActiveAsync(Guid userId, CancellationToken cancellationToken = default) =>
+        await Set.AnyAsync(u => u.Id == userId && u.BlockedAt == null, cancellationToken);
 }

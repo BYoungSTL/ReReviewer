@@ -76,5 +76,17 @@ public class UsersController(IUserAppService userAppService) : BaseController
     public async Task<ActionResult<UserViewModel>> SetRoles(Guid id, List<int> roleIds) =>
         await userAppService.SetUserRolesAsync(id, roleIds);
 
+    // Заблокированный не может войти, а выданные ему токены сразу перестают действовать. Себя заблокировать нельзя.
+    // Отзывы пользователя остаются как есть: снять опубликованные можно через модерацию.
+    [Authorize(Roles = RoleNames.Admin)]
+    [HttpPost("{id:guid}/block")]
+    public async Task<ActionResult<UserViewModel>> Block(Guid id) =>
+        await userAppService.BlockUserAsync(id, CurrentUserId);
+
+    [Authorize(Roles = RoleNames.Admin)]
+    [HttpPost("{id:guid}/unblock")]
+    public async Task<ActionResult<UserViewModel>> Unblock(Guid id) =>
+        await userAppService.UnblockUserAsync(id);
+
     #endregion
 }

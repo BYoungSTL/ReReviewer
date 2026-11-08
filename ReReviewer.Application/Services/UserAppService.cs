@@ -77,6 +77,34 @@ public class UserAppService(IUserService userService, IRoleService roleService) 
         return ToViewModel(user);
     }
 
+    // Заблокированный не может войти, а выданные ему токены перестают приниматься (IsActiveAsync, см. Startup).
+    // Себя заблокировать нельзя, иначе администратор сам потеряет доступ. Повторная блокировка не сдвигает дату.
+    public async Task<UserViewModel> BlockUserAsync(Guid userId, Guid currentUserId)
+    {
+        if (userId == currentUserId)
+            throw new ValidationException("You cannot block yourself.");
+
+        var user = await userService.GetRequiredAsync(userId);
+
+        user.BlockedAt ??= DateTime.UtcNow;
+        await userService.UpdateAsync(user);
+
+        return ToViewModel(user);
+    }
+
+    public async Task<UserViewModel> UnblockUserAsync(Guid userId)
+    {
+        var user = await userService.GetRequiredAsync(userId);
+
+        user.BlockedAt = null;
+        await userService.UpdateAsync(user);
+
+        return ToViewModel(user);
+    }
+
+    public async Task<bool> IsActiveAsync(Guid userId) =>
+        await userService.IsActiveAsync(userId);
+
     private static UserViewModel ToViewModel(User user) =>
         new()
         {
@@ -88,6 +116,7 @@ public class UserAppService(IUserService userService, IRoleService roleService) 
                 .Select(r => new RoleViewModel { Id = r.Id, Title = r.Title })
                 .ToList(),
             ReviewerId = user.Reviewer?.Id,
-            CreatedAt = user.CreatedAt
+            CreatedAt = user.CreatedAt,
+            BlockedAt = user.BlockedAt
         };
 }

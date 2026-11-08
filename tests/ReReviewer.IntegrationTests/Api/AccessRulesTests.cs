@@ -55,6 +55,7 @@ public class AccessRulesTests(ApiFixture api)
         ("PUT", "api/users/me", SignedIn),
         ("GET", "api/users", AdminOnly), ("GET", $"api/users/{G}", AdminOnly), ("POST", "api/users", AdminOnly),
         ("PUT", $"api/users/{G}", AdminOnly), ("DELETE", $"api/users/{G}", AdminOnly), ("PUT", $"api/users/{G}/roles", AdminOnly),
+        ("POST", $"api/users/{G}/block", AdminOnly), ("POST", $"api/users/{G}/unblock", AdminOnly),
 
         ("GET", "api/auth/me", SignedIn)
     ];
