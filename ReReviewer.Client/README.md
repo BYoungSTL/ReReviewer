@@ -55,6 +55,10 @@
 
 ## Как устроено
 
+- **Оформление — тема «Арена».** Сайт только тёмный: палитра в токенах shadcn в `app/globals.css`, класс `dark`
+  на `<html>`. Шрифты: Manrope для текста, Unbounded (`font-display`) для заголовков страниц и крупных оценок.
+  Оценки окрашены по шкале из `lib/score.ts`: 8 и выше, от 6 до 8, ниже 6 (`ScoreBadge`, токены `--score-*`).
+  У обзорщиков и авторов вместо фото аватар с инициалами (`components/avatar.tsx`).
 - **Данные.** Server Components запрашивают API напрямую с сервера: `lib/api/client.ts` (openapi-fetch).
   Публичные данные (обзорщики, рейтинги, опубликованные отзывы) кэшируются на несколько минут — `lib/api/public.ts`.
 - **Вход.** Server Actions (`lib/auth/actions.ts`) получают JWT от `POST /api/auth/login` и кладут его в httpOnly-cookie.

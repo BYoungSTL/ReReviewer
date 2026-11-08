@@ -9,8 +9,10 @@ export function SiteHeader() {
   return (
     <header className="border-b">
       {/* flex-wrap: на узком экране меню модератора не помещается рядом с названием и переносится на вторую строку. */}
-      <div className="mx-auto flex min-h-14 w-full max-w-5xl flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-2">
-        <Link href="/" className="font-semibold tracking-tight">
+      <div className="mx-auto flex min-h-16 w-full max-w-6xl flex-wrap items-center justify-between gap-x-3 gap-y-1 px-4 py-2 sm:gap-x-4 sm:px-6">
+        {/* На телефоне логотип меньше, чтобы меню гостя помещалось рядом с ним. */}
+        <Link href="/" className="flex items-center gap-2 font-display text-base font-bold sm:gap-2.5 sm:text-lg">
+          <span aria-hidden="true" className="flex size-7 items-center justify-center rounded-lg bg-primary text-sm text-primary-foreground sm:size-8">R</span>
           ReReviewer
         </Link>
         {/* Меню читает cookie, поэтому приходит отдельно от статической оболочки страницы. */}
@@ -27,7 +29,7 @@ async function UserMenu() {
 
   if (!user)
     return (
-      <nav className="flex items-center gap-2">
+      <nav className="flex items-center gap-1 sm:gap-2">
         <Link href="/login" className={buttonVariants({ variant: "ghost", size: "sm" })}>
           Войти
         </Link>
