@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getReviewer, getReviewerRating, getReviewerReviews, isGuid } from "@/lib/api/public";
 import { formatScore, pluralize } from "@/lib/format";
@@ -96,7 +98,13 @@ async function ReviewerProfile({ params }: Pick<PageProps<"/reviewers/[id]">, "p
       )}
 
       <section className="flex flex-col gap-4">
-        <h2 className="text-xl font-semibold">Отзывы</h2>
+        <div className="flex items-center justify-between gap-4">
+          <h2 className="text-xl font-semibold">Отзывы</h2>
+          {/* Для гостей ссылка ведёт на вход, а после него — обратно к форме (см. proxy.ts). */}
+          <Link href={`/reviewers/${id}/review`} className={buttonVariants({ size: "sm" })}>
+            Написать отзыв
+          </Link>
+        </div>
         <ReviewsList reviewerId={id} firstPage={reviews} />
       </section>
     </div>

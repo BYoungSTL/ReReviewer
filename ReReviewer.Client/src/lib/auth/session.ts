@@ -35,14 +35,15 @@ export async function clearToken() {
 
 // Пользователь из claims токена (sub, name, email, role — см. JwtTokenService). Подпись здесь не проверяется:
 // ключа у фронтенда нет и не должно быть. Результат нужен только интерфейсу — права проверяет API на каждом запросе.
-// cache — чтобы шапка и страница в одном запросе не разбирали токен дважды.
+// Срок токена тоже не проверяется: браузер удаляет cookie вместе с его истечением (saveToken), а на просроченный
+// токен API ответит 401. Date.now() здесь и нельзя вызывать: с Cache Components он запрещён при пререндере.
+// cache — чтобы несколько компонентов в одном запросе не разбирали токен заново.
 export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   const token = await getToken();
   if (!token) return null;
 
   try {
     const claims = JSON.parse(Buffer.from(token.split(".")[1], "base64url").toString("utf8"));
-    if (typeof claims.exp !== "number" || claims.exp * 1000 <= Date.now()) return null;
 
     return {
       id: claims.sub,

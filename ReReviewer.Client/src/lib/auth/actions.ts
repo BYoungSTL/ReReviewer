@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { publicApi } from "@/lib/api/client";
-import { problemMessage } from "@/lib/api/errors";
+import { API_UNAVAILABLE, problemMessage } from "@/lib/api/errors";
 import { clearToken, saveToken } from "./session";
 
 // Вход и регистрация — только здесь, на сервере: ответ API с токеном не должен попасть в браузер.
@@ -12,8 +12,6 @@ export type AuthFormState = {
   error?: string;
   values?: Record<string, string>;
 } | undefined;
-
-const UNAVAILABLE = "Сервер ReReviewer недоступен. Попробуйте позже.";
 
 export async function login(_state: AuthFormState, form: FormData): Promise<AuthFormState> {
   const email = field(form, "email");
@@ -33,7 +31,7 @@ export async function register(_state: AuthFormState, form: FormData): Promise<A
     const { error } = await publicApi.POST("/api/auth/register", { body: { name, email, password } });
     if (error) return { error: problemMessage(error, "Не удалось зарегистрироваться."), values: { name, email } };
   } catch {
-    return { error: UNAVAILABLE, values: { name, email } };
+    return { error: API_UNAVAILABLE, values: { name, email } };
   }
 
   // Регистрация токен не выдаёт, поэтому сразу входим.
@@ -43,9 +41,9 @@ export async function register(_state: AuthFormState, form: FormData): Promise<A
   redirect(returnPath(form));
 }
 
+// Без redirect: после выхода страницу полностью загружает заново LogoutButton (components/logout-button.tsx).
 export async function logout() {
   await clearToken();
-  redirect("/");
 }
 
 async function signIn(email: string, password: string): Promise<string | undefined> {
@@ -56,7 +54,7 @@ async function signIn(email: string, password: string): Promise<string | undefin
 
     await saveToken(data.token, data.expiresAt);
   } catch {
-    return UNAVAILABLE;
+    return API_UNAVAILABLE;
   }
 }
 

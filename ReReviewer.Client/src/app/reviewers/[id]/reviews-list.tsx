@@ -13,7 +13,9 @@ export function ReviewsList({ reviewerId, firstPage }: {
   firstPage: PagedViewModelOfReviewViewModel;
 }) {
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isError } = useInfiniteQuery({
-    queryKey: ["reviewers", reviewerId, "reviews"],
+    // Первая страница входит в ключ, потому что initialData применяется только к новой записи кэша. Иначе при возврате
+    // на страницу свежие данные с сервера игнорировались бы, и, например, снятый после правки отзыв оставался бы в списке.
+    queryKey: ["reviewers", reviewerId, "reviews", firstPage],
     queryFn: async ({ pageParam }) => {
       const { data, response } = await browserApi.GET("/api/reviewers/{id}/reviews", {
         params: { path: { id: reviewerId }, query: { page: pageParam, pageSize: firstPage.pageSize } },
