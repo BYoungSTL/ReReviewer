@@ -1,14 +1,15 @@
 import Link from "next/link";
+import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { ReviewViewModel } from "@/lib/api/schema";
 import { formatDate, reviewStatusLabel } from "@/lib/format";
 
 // Отзыв пользователя об обзорщике. На странице обзорщика ссылка на него не нужна (showReviewer = false),
-// в «Моих отзывах» — нужна, там же показывается статус модерации.
-export function ReviewCard({ review, showReviewer = false, showStatus = false }: {
+// в «Моих отзывах» — нужна. У своего отзыва (own) видны статус модерации и ссылка на правку.
+export function ReviewCard({ review, showReviewer = false, own = false }: {
   review: ReviewViewModel;
   showReviewer?: boolean;
-  showStatus?: boolean;
+  own?: boolean;
 }) {
   return (
     <Card>
@@ -25,7 +26,7 @@ export function ReviewCard({ review, showReviewer = false, showStatus = false }:
         </CardTitle>
         <CardDescription>
           {formatDate(review.createdAt)}
-          {showStatus && <> · {reviewStatusLabel(review.status)}</>}
+          {own && <> · {reviewStatusLabel(review.status)}</>}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
@@ -53,6 +54,11 @@ export function ReviewCard({ review, showReviewer = false, showStatus = false }:
               </span>
             ))}
           </div>
+        )}
+        {own && (
+          <Link href={`/reviews/${review.id}/edit`} className={`${buttonVariants({ variant: "outline", size: "sm" })} self-start`}>
+            Изменить
+          </Link>
         )}
       </CardContent>
     </Card>

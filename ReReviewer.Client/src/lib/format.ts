@@ -17,6 +17,16 @@ const STATUS_LABELS: Record<string, string> = {
 export const reviewStatusLabel = (status: string | null) =>
   (status && STATUS_LABELS[status]) ?? status ?? "";
 
+const FORMAT_LABELS: Record<string, string> = {
+  Article: "Статья",
+  Video: "Видео",
+  Stream: "Стрим",
+  Podcast: "Подкаст",
+};
+
+export const materialFormatLabel = (format: string) =>
+  FORMAT_LABELS[format] ?? format;
+
 // "1 отзыв", "3 отзыва", "5 отзывов".
 export function pluralize(count: number, one: string, few: string, many: string) {
   const mod10 = count % 10;

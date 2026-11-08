@@ -48,6 +48,26 @@ export async function getReviewerRating(id: string) {
   return data ?? failed(response);
 }
 
+export async function getReviewerMaterials(id: string) {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag(reviewerTag(id));
+
+  const { data, response } = await publicApi.GET("/api/reviewers/{id}/materials", { params: { path: { id } } });
+
+  return data ?? failed(response);
+}
+
+export async function getCriteria() {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag("criteria");
+
+  const { data, response } = await publicApi.GET("/api/criteria");
+
+  return data ?? failed(response);
+}
+
 // Опубликованные отзывы, новые сверху.
 export async function getReviewerReviews(id: string, page = 1) {
   "use cache";

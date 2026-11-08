@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { logout } from "@/lib/auth/actions";
+import { LogoutButton } from "@/components/logout-button";
+import { buttonVariants } from "@/components/ui/button";
 import { getCurrentUser } from "@/lib/auth/session";
 
 export function SiteHeader() {
@@ -41,11 +41,7 @@ async function UserMenu() {
         Мои отзывы
       </Link>
       <span className="hidden text-sm text-muted-foreground sm:inline">{user.name}</span>
-      <form action={logout}>
-        <Button type="submit" variant="outline" size="sm">
-          Выйти
-        </Button>
-      </form>
+      <LogoutButton />
     </nav>
   );
 }

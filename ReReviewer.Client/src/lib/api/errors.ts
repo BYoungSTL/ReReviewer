@@ -1,3 +1,5 @@
+export const API_UNAVAILABLE = "Сервер ReReviewer недоступен. Попробуйте позже.";
+
 // Ошибки API приходят как ProblemDetails (ExceptionHandlingMiddleware), а при невалидном теле запроса —
 // как ValidationProblemDetails с полем errors ([ApiController]). Сообщения в них на английском.
 type Problem = {
