@@ -151,7 +151,29 @@ public class ReviewService(ReReviewerDbContext context) : BaseService<Review, Gu
             .Select(g => new CriterionRating(g.Key.CriterionId, g.Key.Title, g.Average(s => (double)s.Score), g.Count()))
             .ToListAsync(cancellationToken);
 
-        return new ReviewerRating(reviewerId, reviewCount, averageScore, criteria);
+        var countsByScore = await published
+            .GroupBy(r => r.Score)
+            .Select(g => new { Score = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(g => g.Score, g => g.Count, cancellationToken);
+        var scores = Enumerable.Range(MinScore, MaxScore - MinScore + 1)
+            .Select(score => new ScoreCount((byte)score, countsByScore.GetValueOrDefault((byte)score)))
+            .ToList();
+
+        return new ReviewerRating(reviewerId, reviewCount, averageScore, criteria, scores);
+    }
+
+    // Одним запросом на всех: список обзорщиков показывает рейтинг каждого.
+    public async Task<IReadOnlyDictionary<Guid, ReviewerScoreSummary>> GetPublishedSummariesAsync(
+        IReadOnlyCollection<Guid>? reviewerIds = null, CancellationToken cancellationToken = default)
+    {
+        var published = Set.Where(r => r.Status == ReviewStatus.Published);
+        if (reviewerIds is not null)
+            published = published.Where(r => reviewerIds.Contains(r.ReviewerId));
+
+        return await published
+            .GroupBy(r => r.ReviewerId)
+            .Select(g => new ReviewerScoreSummary(g.Key, g.Count(), g.Average(r => (double)r.Score)))
+            .ToDictionaryAsync(summary => summary.ReviewerId, cancellationToken);
     }
 
     #endregion

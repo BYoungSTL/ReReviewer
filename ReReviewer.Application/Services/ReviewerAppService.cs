@@ -3,22 +3,28 @@ using ReReviewer.Application.Services.Base;
 using ReReviewer.Application.ViewModels;
 using ReReviewer.Data.Entities;
 using ReReviewer.Data.Interfaces;
+using ReReviewer.Data.Models;
 
 namespace ReReviewer.Application.Services;
 
-// Жанры, издания и бейджи обзорщика подгружаются лениво при сборке ViewModel.
+// Жанры, издания и бейджи обзорщика подгружаются лениво при сборке ViewModel, средняя оценка — из IReviewService.
 // Материалы обзорщика — в IMaterialAppService, отзывы о нём — в IReviewAppService.
-public class ReviewerAppService(IReviewerService reviewerService, IGenreService genreService) : IReviewerAppService
+public class ReviewerAppService(IReviewerService reviewerService, IGenreService genreService, IReviewService reviewService)
+    : IReviewerAppService
 {
     public async Task<List<ReviewerViewModel>> GetReviewersAsync()
     {
         var reviewers = await reviewerService.GetAllAsync();
+        var summaries = await reviewService.GetPublishedSummariesAsync();
 
-        return reviewers.OrderBy(r => r.FullName).Select(ToViewModel).ToList();
+        return reviewers
+            .OrderBy(r => r.FullName)
+            .Select(r => ToViewModel(r, summaries.GetValueOrDefault(r.Id)))
+            .ToList();
     }
 
     public async Task<ReviewerViewModel> GetReviewerAsync(Guid reviewerId) =>
-        ToViewModel(await reviewerService.GetRequiredAsync(reviewerId));
+        await ToViewModelAsync(await reviewerService.GetRequiredAsync(reviewerId));
 
     // Привязка к аккаунту здесь не меняется — для этого ValidateReviewerAsync.
     public async Task<bool> SaveReviewerAsync(ReviewerViewModel reviewer)
@@ -46,9 +52,16 @@ public class ReviewerAppService(IReviewerService reviewerService, IGenreService 
 
     // Подтверждает, что пользователь — этот обзорщик: привязывает профиль к его аккаунту.
     public async Task<ReviewerViewModel> ValidateReviewerAsync(Guid reviewerId, Guid userId) =>
-        ToViewModel(await reviewerService.ValidateReviewerAsync(new Reviewer { Id = reviewerId }, userId));
+        await ToViewModelAsync(await reviewerService.ValidateReviewerAsync(new Reviewer { Id = reviewerId }, userId));
 
-    private static ReviewerViewModel ToViewModel(Reviewer reviewer) =>
+    private async Task<ReviewerViewModel> ToViewModelAsync(Reviewer reviewer)
+    {
+        var summaries = await reviewService.GetPublishedSummariesAsync([reviewer.Id]);
+
+        return ToViewModel(reviewer, summaries.GetValueOrDefault(reviewer.Id));
+    }
+
+    private static ReviewerViewModel ToViewModel(Reviewer reviewer, ReviewerScoreSummary? summary) =>
         new()
         {
             Id = reviewer.Id,
@@ -78,6 +91,8 @@ public class ReviewerAppService(IReviewerService reviewerService, IGenreService 
                     BadgeTitle = award.Badge.Title,
                     AwardedAt = award.AwardedAt
                 })
-                .ToList()
+                .ToList(),
+            ReviewCount = summary?.ReviewCount ?? 0,
+            AverageScore = summary?.AverageScore
         };
 }
