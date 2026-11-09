@@ -10,7 +10,8 @@ import type { GenreViewModel } from "@/lib/api/schema";
 import { suggestReviewer } from "@/lib/requests/actions";
 
 // canClaim = false, если аккаунт уже привязан к профилю: тогда отметки «это я» нет.
-export function SuggestForm({ genres, canClaim }: { genres: GenreViewModel[]; canClaim: boolean }) {
+// self — отметка «это я» включена сразу (ссылка из настроек).
+export function SuggestForm({ genres, canClaim, self }: { genres: GenreViewModel[]; canClaim: boolean; self: boolean }) {
   const [state, formAction, pending] = useActionState(suggestReviewer, undefined);
   const values = state?.values;
 
@@ -70,7 +71,7 @@ export function SuggestForm({ genres, canClaim }: { genres: GenreViewModel[]; ca
 
       {canClaim && (
         <label className="flex cursor-pointer items-start gap-3 rounded-2xl border p-4 hover:border-primary/60">
-          <input type="checkbox" name="isSelf" defaultChecked={values?.isSelf} className="mt-1 size-4 shrink-0 accent-primary" />
+          <input type="checkbox" name="isSelf" defaultChecked={values ? values.isSelf : self} className="mt-1 size-4 shrink-0 accent-primary" />
           <span className="flex flex-col gap-1">
             <span className="font-semibold">Это я</span>
             <span className="text-sm text-muted-foreground">

@@ -67,7 +67,11 @@ export async function moderateClaim(
       ? await api.POST("/api/claims/{id}/approve", params)
       : await api.POST("/api/claims/{id}/reject", params);
 
-    if (approve && result.response.ok) updateTag(reviewerTag(reviewerId));
+    // Список тоже: по нему настройки решают, какие профили ещё свободны.
+    if (approve && result.response.ok) {
+      updateTag(reviewerTag(reviewerId));
+      updateTag("reviewers");
+    }
 
     return result;
   });

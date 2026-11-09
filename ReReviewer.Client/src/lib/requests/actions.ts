@@ -16,7 +16,7 @@ export type SuggestFormValues = {
 
 export type SuggestFormState = { error: string; values: SuggestFormValues } | undefined;
 
-export type ClaimFormState = { error: string; values: { note: string } } | undefined;
+export type ClaimFormState = { error: string; values: { note: string; reviewerId: string } } | undefined;
 
 const EMPTY_GUID = "00000000-0000-0000-0000-000000000000";
 
@@ -66,8 +66,16 @@ export async function suggestReviewer(_state: SuggestFormState, form: FormData):
   redirect("/me?request=suggestion");
 }
 
+// Из настроек: профиль выбирают в списке, а не открывают со страницы обзорщика.
+export async function claimSelectedReviewer(state: ClaimFormState, form: FormData): Promise<ClaimFormState> {
+  const reviewerId = text(form, "reviewerId");
+  if (!reviewerId) return { error: "Выберите свой профиль в списке.", values: { note: text(form, "note"), reviewerId } };
+
+  return claimReviewer(reviewerId, state, form);
+}
+
 export async function claimReviewer(reviewerId: string, _state: ClaimFormState, form: FormData): Promise<ClaimFormState> {
-  const values = { note: text(form, "note") };
+  const values = { note: text(form, "note"), reviewerId };
   const failure = (error: string) => ({ error, values });
 
   if (!values.note) return failure("Напишите, как модератору убедиться, что это вы.");

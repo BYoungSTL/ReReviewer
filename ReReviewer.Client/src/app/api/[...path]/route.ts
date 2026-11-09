@@ -6,6 +6,7 @@ import { getToken } from "@/lib/auth/session";
 // с токеном из httpOnly-cookie. Токен остаётся на сервере, а браузеру не нужен CORS — запросы идут на тот же сайт.
 // Вход и регистрация закрыты: их ответ с токеном не должен попасть в браузер (см. lib/auth/actions.ts).
 const BLOCKED = new Set(["auth/login", "auth/register"]);
+const PASSED_HEADERS = ["content-type", "cache-control", "x-content-type-options", "content-security-policy"];
 
 async function forward(request: NextRequest, { params }: RouteContext<"/api/[...path]">) {
   const { path } = await params;
@@ -34,10 +35,13 @@ async function forward(request: NextRequest, { params }: RouteContext<"/api/[...
     return Response.json({ title: "Bad Gateway", status: 502, detail: "ReReviewer API is unavailable." }, { status: 502 });
   }
 
-  // Наружу уходит только тип содержимого: Location, Server и прочие заголовки API браузеру не нужны.
+  // Наружу уходят только заголовки из списка: Location, Server и прочие заголовки API браузеру не нужны.
+  // Кэширование и защитные заголовки — для аватарок, которые браузер загружает отсюда как картинки.
   const responseHeaders = new Headers();
-  const responseType = response.headers.get("content-type");
-  if (responseType) responseHeaders.set("content-type", responseType);
+  for (const name of PASSED_HEADERS) {
+    const value = response.headers.get(name);
+    if (value) responseHeaders.set(name, value);
+  }
 
   return new Response(response.body, { status: response.status, headers: responseHeaders });
 }

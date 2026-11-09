@@ -4,6 +4,7 @@ import { Avatar } from "@/components/avatar";
 import { ScoreBadge } from "@/components/score-badge";
 import { buttonVariants } from "@/components/ui/button";
 import type { ReviewViewModel } from "@/lib/api/schema";
+import { avatarUrl } from "@/lib/avatar";
 import { formatDate, reviewStatusLabel } from "@/lib/format";
 import { SCORE_TEXT, scoreTone } from "@/lib/score";
 
@@ -23,7 +24,7 @@ export function ReviewCard({ review, showReviewer = false, own = false, meta, ch
         <div className="flex min-w-0 items-center gap-3">
           {showReviewer
             ? <Avatar id={review.reviewerId} name={review.reviewerName ?? ""} size="sm" />
-            : <Avatar id={review.userId} name={review.userName ?? ""} size="sm" />}
+            : <Avatar id={review.userId} name={review.userName ?? ""} src={avatarUrl(review.userId, review.userAvatarUpdatedAt)} size="sm" />}
           <div className="min-w-0">
             <div className="font-bold">
               {showReviewer ? (
