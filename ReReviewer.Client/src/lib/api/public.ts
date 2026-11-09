@@ -71,6 +71,16 @@ export async function getCriteria() {
   return data ?? failed(response);
 }
 
+export async function getOutlets() {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag("outlets");
+
+  const { data, response } = await publicApi.GET("/api/outlets");
+
+  return data ?? failed(response);
+}
+
 export async function getGenres() {
   "use cache";
   cacheLife("minutes");

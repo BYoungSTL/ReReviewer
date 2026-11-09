@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense, type ReactNode } from "react";
+import { buttonVariants } from "@/components/ui/button";
 import { failed, userApi } from "@/lib/api/client";
 import { getReviewers } from "@/lib/api/public";
 import { avatarUrl } from "@/lib/avatar";
@@ -76,7 +77,14 @@ function ReviewerLink({ userReviewerId, reviewers, pendingClaim, pendingSelf }: 
   if (userReviewerId) {
     const linked = reviewers.find((reviewer) => reviewer.id === userReviewerId);
 
-    return <p>Ваш аккаунт привязан к профилю {link(userReviewerId, linked?.fullName ?? "обзорщика")}.</p>;
+    return (
+      <div className="flex flex-col gap-4">
+        <p>Ваш аккаунт привязан к профилю {link(userReviewerId, linked?.fullName ?? "обзорщика")}.</p>
+        <Link href={`/reviewers/${userReviewerId}/edit`} className={`${buttonVariants({ variant: "outline" })} self-start`}>
+          Редактировать профиль обзорщика
+        </Link>
+      </div>
+    );
   }
   if (pendingClaim)
     return <p>Запрос на привязку профиля {link(pendingClaim.reviewerId, pendingClaim.reviewerName)} ждёт модератора.</p>;

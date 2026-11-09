@@ -10,7 +10,8 @@ namespace ReReviewer.Controllers;
 // Управление пользователями — только администратор. Свой профиль любой вошедший пользователь
 // меняет через api/users/me, смотрит — через GET api/auth/me. Регистрация — в api/auth/register.
 [Authorize]
-public class UsersController(IUserAppService userAppService, IJwtTokenService tokenService) : BaseController
+public class UsersController(IUserAppService userAppService, IReviewerAppService reviewerAppService, IJwtTokenService tokenService)
+    : BaseController
 {
     #region Own profile
 
@@ -40,6 +41,12 @@ public class UsersController(IUserAppService userAppService, IJwtTokenService to
     [HttpDelete("me/avatar")]
     public async Task<ActionResult<AuthTokenViewModel>> RemoveAvatar() =>
         tokenService.CreateToken(await userAppService.RemoveAvatarAsync(CurrentUserId));
+
+    // Профиль обзорщика, привязанный к этому аккаунту: имя, жанры, «о себе», ссылки и места работы.
+    // Здесь, а не в ReviewersController: там правка открыта только персоналу, а владельцу нужна своя.
+    [HttpPut("me/reviewer")]
+    public async Task<ActionResult<ReviewerViewModel>> UpdateMyReviewer(ReviewerProfileViewModel profile) =>
+        await reviewerAppService.UpdateOwnProfileAsync(CurrentUserId, profile);
 
     // Аватарка видна всем. Сайт добавляет к адресу версию (?v=), поэтому её можно кэшировать надолго.
     // nosniff и пустой CSP — чтобы картинку нельзя было открыть как страницу.

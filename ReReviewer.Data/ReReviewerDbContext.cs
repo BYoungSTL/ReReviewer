@@ -105,6 +105,10 @@ public class ReReviewerDbContext : DbContext
     {
         builder.HasKey(e => e.Id);
 
+        builder.Property(e => e.About).HasMaxLength(1000);
+        // Список адресов хранится JSON-массивом в одной колонке: искать по ним не нужно.
+        builder.PrimitiveCollection(e => e.Links).IsRequired();
+
         builder.Property(e => e.Id).IsRequired();
         builder.Property(e => e.FullName).IsRequired().HasMaxLength(250);
 
