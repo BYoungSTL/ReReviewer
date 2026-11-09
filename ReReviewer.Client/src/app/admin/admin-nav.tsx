@@ -8,11 +8,13 @@ export function AdminNav({ showUsers }: { showUsers: boolean }) {
   const pathname = usePathname();
   const tabs = [
     { href: "/admin/reviews", label: "Отзывы" },
+    { href: "/admin/reviewers", label: "Новые обзорщики" },
+    { href: "/admin/claims", label: "Привязка профилей" },
     ...(showUsers ? [{ href: "/admin/users", label: "Пользователи" }] : []),
   ] as const;
 
   return (
-    <nav className="flex gap-1 border-b pb-2">
+    <nav className="flex flex-wrap gap-1 border-b pb-2">
       {tabs.map((tab) => {
         const active = pathname.startsWith(tab.href);
 

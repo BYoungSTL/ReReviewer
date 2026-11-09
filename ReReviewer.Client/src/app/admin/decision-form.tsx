@@ -4,7 +4,8 @@ import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import type { AdminActionState } from "@/lib/admin/actions";
 
-export function ReviewModeration({ action }: {
+// Решение модератора по отзыву или заявке: нажатая кнопка передаёт decision = approve или reject.
+export function DecisionForm({ action }: {
   action: (state: AdminActionState, form: FormData) => Promise<AdminActionState>;
 }) {
   const [state, formAction, pending] = useActionState(action, undefined);
