@@ -113,15 +113,21 @@ async function Reviewers({ searchParams }: Pick<PageProps<"/">, "searchParams">)
         })}
       </nav>
 
-      <p className="text-sm text-muted-foreground">
-        {reviewers.length} {pluralize(reviewers.length, "обзорщик", "обзорщика", "обзорщиков")} ·{" "}
-        {reviewCount} {pluralize(reviewCount, "опубликованный отзыв", "опубликованных отзыва", "опубликованных отзывов")}
-        {(query || genre) && <> · найдено {shown.length}</>}
-      </p>
+      <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
+        <p className="text-sm text-muted-foreground">
+          {reviewers.length} {pluralize(reviewers.length, "обзорщик", "обзорщика", "обзорщиков")} ·{" "}
+          {reviewCount} {pluralize(reviewCount, "опубликованный отзыв", "опубликованных отзыва", "опубликованных отзывов")}
+          {(query || genre) && <> · найдено {shown.length}</>}
+        </p>
+        <Link href="/reviewers/new" className="text-sm font-semibold text-primary underline-offset-4 hover:underline">
+          Нет нужного обзорщика? Предложите его
+        </Link>
+      </div>
 
       {shown.length === 0 ? (
         <p className="text-muted-foreground">
-          Никого не нашлось. <Link href="/" className="text-primary underline underline-offset-4">Сбросить фильтры</Link>
+          Никого не нашлось. <Link href="/" className="text-primary underline underline-offset-4">Сбросить фильтры</Link>{" "}
+          или <Link href="/reviewers/new" className="text-primary underline underline-offset-4">предложите обзорщика</Link>.
         </p>
       ) : (
         <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

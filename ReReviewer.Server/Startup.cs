@@ -117,6 +117,8 @@ namespace ReReviewer
             services.AddScoped<IMaterialService, MaterialService>();
             services.AddScoped<ICriterionService, CriterionService>();
             services.AddScoped<IReviewService, ReviewService>();
+            services.AddScoped<IReviewerSuggestionService, ReviewerSuggestionService>();
+            services.AddScoped<IReviewerClaimService, ReviewerClaimService>();
 
             services.AddScoped<IUserAppService, UserAppService>();
             services.AddScoped<IRoleAppService, RoleAppService>();
@@ -128,6 +130,7 @@ namespace ReReviewer
             services.AddScoped<IMaterialAppService, MaterialAppService>();
             services.AddScoped<ICriterionAppService, CriterionAppService>();
             services.AddScoped<IReviewAppService, ReviewAppService>();
+            services.AddScoped<IReviewerRequestAppService, ReviewerRequestAppService>();
             services.AddScoped<IAuthAppService, AuthAppService>();
 
             services.AddSingleton<IJwtTokenService, JwtTokenService>();

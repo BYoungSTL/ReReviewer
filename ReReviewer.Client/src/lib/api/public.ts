@@ -71,6 +71,16 @@ export async function getCriteria() {
   return data ?? failed(response);
 }
 
+export async function getGenres() {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag("genres");
+
+  const { data, response } = await publicApi.GET("/api/genres");
+
+  return data ?? failed(response);
+}
+
 // Опубликованные отзывы, новые сверху.
 export async function getReviewerReviews(id: string, page = 1) {
   "use cache";

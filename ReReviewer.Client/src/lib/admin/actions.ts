@@ -34,6 +34,45 @@ export async function moderateReview(
   });
 }
 
+// Одобренная заявка создаёт обзорщика, и он сразу появляется в списке на главной.
+export async function moderateSuggestion(suggestionId: string, _state: AdminActionState, form: FormData): Promise<AdminActionState> {
+  const approve = form.get("decision") === "approve";
+
+  return run("/admin/reviewers", "Не удалось сохранить решение.", async () => {
+    const api = await userApi();
+    const params = { params: { path: { id: suggestionId } } };
+    const result = approve
+      ? await api.POST("/api/suggestions/{id}/approve", params)
+      : await api.POST("/api/suggestions/{id}/reject", params);
+
+    if (approve && result.response.ok) updateTag("reviewers");
+
+    return result;
+  });
+}
+
+// После одобрения профиль отмечается как подтверждённый: сбрасывается его кэш.
+export async function moderateClaim(
+  claimId: string,
+  reviewerId: string,
+  _state: AdminActionState,
+  form: FormData,
+): Promise<AdminActionState> {
+  const approve = form.get("decision") === "approve";
+
+  return run("/admin/claims", "Не удалось сохранить решение.", async () => {
+    const api = await userApi();
+    const params = { params: { path: { id: claimId } } };
+    const result = approve
+      ? await api.POST("/api/claims/{id}/approve", params)
+      : await api.POST("/api/claims/{id}/reject", params);
+
+    if (approve && result.response.ok) updateTag(reviewerTag(reviewerId));
+
+    return result;
+  });
+}
+
 // Одна форма на пользователя, действие выбирает нажатая кнопка (intent).
 export async function moderateUser(userId: string, _state: AdminActionState, form: FormData): Promise<AdminActionState> {
   const intent = form.get("intent");

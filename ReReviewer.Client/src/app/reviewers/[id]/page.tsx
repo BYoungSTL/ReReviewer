@@ -1,5 +1,5 @@
 import { cn } from "cn";
-import { Award, ChevronLeft, FileText, Mic, PenLine, Radio, Video, type LucideIcon } from "lucide-react";
+import { Award, BadgeCheck, ChevronLeft, FileText, Mic, PenLine, Radio, Video, type LucideIcon } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -121,6 +121,17 @@ function ProfileHeader({ id, reviewer }: { id: string; reviewer: ReviewerViewMod
                 </li>
               ))}
             </ul>
+          )}
+          {/* Привязанный профиль подтверждён модератором (запрос «это я»), к остальным можно отправить такой запрос. */}
+          {reviewer.userId ? (
+            <p className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary">
+              <BadgeCheck aria-hidden="true" className="size-4" />
+              Профиль подтверждён автором
+            </p>
+          ) : (
+            <Link href={`/reviewers/${id}/claim`} className="self-start text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
+              Это вы? Привяжите профиль к своему аккаунту
+            </Link>
           )}
         </div>
       </div>
