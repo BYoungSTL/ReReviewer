@@ -1,4 +1,5 @@
-﻿using System.Security.Claims;
+﻿using System.Globalization;
+using System.Security.Claims;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
@@ -6,8 +7,9 @@ using ReReviewer.Application.ViewModels;
 
 namespace ReReviewer.Security;
 
-// Выпускает JWT, подписанный HMAC-SHA256. Claims: sub — Id пользователя, name, email и по claim role
-// на каждую роль. Короткие имена claims совпадают с NameClaimType/RoleClaimType в Startup.
+// Выпускает JWT, подписанный HMAC-SHA256. Claims: sub — Id пользователя, name, email, по claim role
+// на каждую роль и avatar — версия аватарки, если она есть (сайт строит по ней адрес картинки).
+// Короткие имена claims совпадают с NameClaimType/RoleClaimType в Startup.
 public class JwtTokenService(IOptions<JwtOptions> options) : IJwtTokenService
 {
     public AuthTokenViewModel CreateToken(UserViewModel user)
@@ -22,6 +24,8 @@ public class JwtTokenService(IOptions<JwtOptions> options) : IJwtTokenService
             new(JwtRegisteredClaimNames.Email, user.Email)
         };
         claims.AddRange(user.Roles.Select(role => new Claim("role", role.Title)));
+        if (user.AvatarUpdatedAt is { } avatarUpdatedAt)
+            claims.Add(new Claim("avatar", avatarUpdatedAt.Ticks.ToString(CultureInfo.InvariantCulture)));
 
         var token = new JsonWebTokenHandler().CreateToken(new SecurityTokenDescriptor
         {

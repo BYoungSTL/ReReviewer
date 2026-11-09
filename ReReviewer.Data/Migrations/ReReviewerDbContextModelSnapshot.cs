@@ -493,6 +493,9 @@ namespace ReReviewer.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<DateTime?>("AvatarUpdatedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime?>("BlockedAt")
                         .HasColumnType("datetime2");
 
@@ -511,6 +514,9 @@ namespace ReReviewer.Data.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<DateTime?>("PasswordChangedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -521,6 +527,28 @@ namespace ReReviewer.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("Users");
+                });
+
+            modelBuilder.Entity("ReReviewer.Data.Entities.UserAvatar", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte[]>("Content")
+                        .IsRequired()
+                        .HasColumnType("varbinary(max)");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("UserAvatars");
                 });
 
             modelBuilder.Entity("RoleUser", b =>
@@ -748,6 +776,15 @@ namespace ReReviewer.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("ReReviewer.Data.Entities.UserAvatar", b =>
+                {
+                    b.HasOne("ReReviewer.Data.Entities.User", null)
+                        .WithOne()
+                        .HasForeignKey("ReReviewer.Data.Entities.UserAvatar", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("RoleUser", b =>

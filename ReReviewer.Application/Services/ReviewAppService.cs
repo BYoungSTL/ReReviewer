@@ -139,6 +139,7 @@ public class ReviewAppService(IReviewService reviewService) : IReviewAppService
                 })
                 .ToList(),
             UserName = review.User.Name,
+            UserAvatarUpdatedAt = review.User.AvatarUpdatedAt,
             ReviewerName = review.Reviewer.FullName,
             Status = review.Status.ToString(),
             CreatedAt = review.CreatedAt,

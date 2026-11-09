@@ -175,10 +175,72 @@ public class UserAppServiceTests
 
     private User StoredUser(DateTime? blockedAt = null)
     {
-        var user = new User { Id = Guid.NewGuid(), Name = "player", Email = "player@test.local", BlockedAt = blockedAt };
+        var user = new User
+        {
+            Id = Guid.NewGuid(),
+            Name = "player",
+            Email = "player@test.local",
+            PasswordHash = PasswordHasher.Hash("secret-123"),
+            BlockedAt = blockedAt
+        };
         _users.GetByIdAsync(user.Id, Arg.Any<CancellationToken>()).Returns(user);
 
         return user;
+    }
+
+    #endregion
+
+    #region Свой профиль
+
+    [Theory]
+    [InlineData(null, "Current password is required to change email.")]
+    [InlineData("wrong-password", "Current password is incorrect.")]
+    public async Task UpdateProfileAsync_NewEmailWithoutCorrectPassword_Throws(string? currentPassword, string message)
+    {
+        var user = StoredUser();
+
+        var exception = await Should.ThrowAsync<ValidationException>(() => _service.UpdateProfileAsync(user.Id,
+            new ProfileViewModel { Name = "player", Email = "new@test.local", CurrentPassword = currentPassword }));
+
+        exception.Message.ShouldBe(message);
+        await _users.DidNotReceiveWithAnyArgs().UpdateAsync(default!, default);
+    }
+
+    [Fact]
+    public async Task ChangePasswordAsync_WrongCurrentPassword_Throws()
+    {
+        var user = StoredUser();
+
+        var exception = await Should.ThrowAsync<ValidationException>(() => _service.ChangePasswordAsync(user.Id,
+            new PasswordChangeViewModel { CurrentPassword = "wrong-password", NewPassword = "new-secret-123" }));
+
+        exception.Message.ShouldBe("Current password is incorrect.");
+        PasswordHasher.Verify("secret-123", user.PasswordHash).ShouldBeTrue();
+    }
+
+    [Theory]
+    [InlineData(new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0 }, "image/png")]
+    [InlineData(new byte[] { 0xFF, 0xD8, 0xFF, 0xE0, 0 }, "image/jpeg")]
+    [InlineData(new byte[] { 0x52, 0x49, 0x46, 0x46, 1, 2, 3, 4, 0x57, 0x45, 0x42, 0x50, 0 }, "image/webp")]
+    public async Task SetAvatarAsync_DetectsTypeByContent(byte[] content, string contentType)
+    {
+        var user = StoredUser();
+        _users.SetAvatarAsync(user.Id, content, contentType, Arg.Any<CancellationToken>()).Returns(user);
+
+        await _service.SetAvatarAsync(user.Id, content);
+
+        await _users.Received(1).SetAvatarAsync(user.Id, content, contentType, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task SetAvatarAsync_TooLarge_Throws()
+    {
+        var content = new byte[512 * 1024 + 1];
+        content[0] = 0xFF; content[1] = 0xD8; content[2] = 0xFF;
+
+        var exception = await Should.ThrowAsync<ValidationException>(() => _service.SetAvatarAsync(Guid.NewGuid(), content));
+
+        exception.Message.ShouldBe("Avatar must be at most 512 KB.");
     }
 
     #endregion

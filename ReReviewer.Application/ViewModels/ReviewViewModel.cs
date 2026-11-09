@@ -21,6 +21,10 @@ public class ReviewViewModel
     #region Только чтение
 
     public string? UserName { get; set; }
+
+    // Null — у автора нет аватарки (см. UserViewModel.AvatarUpdatedAt).
+    public DateTime? UserAvatarUpdatedAt { get; set; }
+
     public string? ReviewerName { get; set; }
     public string? Status { get; set; }
     public DateTime CreatedAt { get; set; }

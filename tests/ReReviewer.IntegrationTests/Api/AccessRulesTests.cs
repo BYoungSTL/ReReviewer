@@ -52,7 +52,9 @@ public class AccessRulesTests(ApiFixture api)
         ("PUT", $"api/reviews/{G}", SignedIn), ("DELETE", $"api/reviews/{G}", SignedIn),
         ("GET", "api/reviews/moderation", Staff), ("POST", $"api/reviews/{G}/approve", Staff), ("POST", $"api/reviews/{G}/reject", Staff),
 
-        ("PUT", "api/users/me", SignedIn),
+        ("PUT", "api/users/me", SignedIn), ("PUT", "api/users/me/password", SignedIn),
+        ("PUT", "api/users/me/avatar", SignedIn), ("DELETE", "api/users/me/avatar", SignedIn),
+        ("GET", $"api/users/{G}/avatar", Everyone),
         ("GET", "api/users", AdminOnly), ("GET", $"api/users/{G}", AdminOnly), ("POST", "api/users", AdminOnly),
         ("PUT", $"api/users/{G}", AdminOnly), ("DELETE", $"api/users/{G}", AdminOnly), ("PUT", $"api/users/{G}/roles", AdminOnly),
         ("POST", $"api/users/{G}/block", AdminOnly), ("POST", $"api/users/{G}/unblock", AdminOnly),
@@ -82,7 +84,10 @@ public class AccessRulesTests(ApiFixture api)
     {
         using var client = api.CreateClient(caller);
         using var request = new HttpRequestMessage(new HttpMethod(method), url);
-        if (method is "POST" or "PUT")
+        // Загрузка аватарки принимает только multipart: на JSON ASP.NET ответит 415 ещё до проверки прав.
+        if (method is "PUT" && url.EndsWith("/avatar"))
+            request.Content = new MultipartFormDataContent();
+        else if (method is "POST" or "PUT")
             request.Content = JsonContent.Create(new { });
 
         using var response = await client.SendAsync(request);

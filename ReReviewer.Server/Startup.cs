@@ -177,16 +177,18 @@ namespace ReReviewer
                     };
 
                     // Токен действует до истечения срока, а заблокированный или удалённый пользователь должен
-                    // потерять доступ сразу. Поэтому на каждом запросе с токеном проверяется, что аккаунт активен.
+                    // потерять доступ сразу, как и сеансы, открытые до смены пароля. Поэтому на каждом запросе
+                    // с токеном проверяется аккаунт и время выдачи токена (iat).
                     bearer.Events = new JwtBearerEvents
                     {
                         OnTokenValidated = async context =>
                         {
                             var users = context.HttpContext.RequestServices.GetRequiredService<IUserAppService>();
                             var subject = context.Principal?.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+                            var issuedAt = context.SecurityToken is JsonWebToken token ? token.IssuedAt : DateTime.MinValue;
 
-                            if (!Guid.TryParse(subject, out var userId) || !await users.IsActiveAsync(userId))
-                                context.Fail("The account is blocked or no longer exists.");
+                            if (!Guid.TryParse(subject, out var userId) || !await users.AcceptsTokenAsync(userId, issuedAt))
+                                context.Fail("The account is blocked, no longer exists or changed its password.");
                         }
                     };
                 });

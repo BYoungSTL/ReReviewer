@@ -26,6 +26,7 @@ public class ReReviewerDbContext : DbContext
     public DbSet<ReviewCriterionScore> ReviewCriterionScores => Set<ReviewCriterionScore>();
     public DbSet<ReviewerSuggestion> ReviewerSuggestions => Set<ReviewerSuggestion>();
     public DbSet<ReviewerClaim> ReviewerClaims => Set<ReviewerClaim>();
+    public DbSet<UserAvatar> UserAvatars => Set<UserAvatar>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -46,6 +47,7 @@ public class ReReviewerDbContext : DbContext
         ReviewCriterionScoreConfiguration(modelBuilder.Entity<ReviewCriterionScore>());
         ReviewerSuggestionConfiguration(modelBuilder.Entity<ReviewerSuggestion>());
         ReviewerClaimConfiguration(modelBuilder.Entity<ReviewerClaim>());
+        UserAvatarConfiguration(modelBuilder.Entity<UserAvatar>());
     }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -336,6 +338,22 @@ public class ReReviewerDbContext : DbContext
             .HasOne(e => e.Reviewer)
             .WithMany()
             .HasForeignKey(e => e.ReviewerId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+
+    // Общий первичный ключ с Users: одна аватарка на пользователя, удаляется вместе с ним.
+    private void UserAvatarConfiguration(EntityTypeBuilder<UserAvatar> builder)
+    {
+        builder.HasKey(e => e.Id);
+
+        builder.Property(e => e.Id).ValueGeneratedNever();
+        builder.Property(e => e.Content).IsRequired();
+        builder.Property(e => e.ContentType).IsRequired().HasMaxLength(50);
+
+        builder
+            .HasOne<User>()
+            .WithOne()
+            .HasForeignKey<UserAvatar>(e => e.Id)
             .OnDelete(DeleteBehavior.Cascade);
     }
     #endregion
