@@ -6711,6 +6711,7 @@ export interface components {
             /** Format: double */
             averageScore: null | number;
             criteria: components["schemas"]["CriterionRatingViewModel"][];
+            scores: components["schemas"]["ScoreCountViewModel"][];
         };
         ReviewerViewModel: {
             /** Format: uuid */
@@ -6721,6 +6722,10 @@ export interface components {
             userId: null | string;
             outlets: components["schemas"]["ReviewerOutletViewModel"][];
             badges: components["schemas"]["ReviewerBadgeViewModel"][];
+            /** Format: int32 */
+            reviewCount: number;
+            /** Format: double */
+            averageScore: null | number;
         };
         ReviewMaterialViewModel: {
             /** Format: uuid */
@@ -6753,6 +6758,12 @@ export interface components {
             /** Format: int32 */
             id: null | number;
             title: string;
+        };
+        ScoreCountViewModel: {
+            /** Format: int32 */
+            score: number;
+            /** Format: int32 */
+            count: number;
         };
         UserViewModel: {
             /** Format: uuid */
@@ -6795,6 +6806,7 @@ export type ReviewerViewModel = components['schemas']['ReviewerViewModel'];
 export type ReviewMaterialViewModel = components['schemas']['ReviewMaterialViewModel'];
 export type ReviewViewModel = components['schemas']['ReviewViewModel'];
 export type RoleViewModel = components['schemas']['RoleViewModel'];
+export type ScoreCountViewModel = components['schemas']['ScoreCountViewModel'];
 export type UserViewModel = components['schemas']['UserViewModel'];
 export type $defs = Record<string, never>;
 export type operations = Record<string, never>;
