@@ -13,5 +13,12 @@ public interface IUserAppService
 
     public Task<UserViewModel> BlockUserAsync(Guid userId, Guid currentUserId);
     public Task<UserViewModel> UnblockUserAsync(Guid userId);
-    public Task<bool> IsActiveAsync(Guid userId);
+    public Task<bool> AcceptsTokenAsync(Guid userId, DateTime issuedAt);
+
+    public Task<UserViewModel> UpdateProfileAsync(Guid userId, ProfileViewModel profile);
+    public Task<UserViewModel> ChangePasswordAsync(Guid userId, PasswordChangeViewModel change);
+
+    public Task<UserViewModel> SetAvatarAsync(Guid userId, byte[] content);
+    public Task<UserViewModel> RemoveAvatarAsync(Guid userId);
+    public Task<AvatarViewModel> GetAvatarAsync(Guid userId);
 }

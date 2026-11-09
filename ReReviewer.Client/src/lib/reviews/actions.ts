@@ -71,6 +71,7 @@ async function saveReview(
       criterionTitle: null,
     })),
     userName: null,
+    userAvatarUpdatedAt: null,
     reviewerName: null,
     status: null,
     createdAt: new Date().toISOString(),

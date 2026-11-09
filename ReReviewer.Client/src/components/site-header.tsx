@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { Suspense } from "react";
+import { Avatar } from "@/components/avatar";
 import { LogoutButton } from "@/components/logout-button";
 import { buttonVariants } from "@/components/ui/button";
 import { isStaff } from "@/lib/auth/roles";
+import { avatarUrl } from "@/lib/avatar";
 import { getCurrentUser } from "@/lib/auth/session";
 
 export function SiteHeader() {
@@ -49,7 +51,15 @@ async function UserMenu() {
       <Link href="/me" className={buttonVariants({ variant: "ghost", size: "sm" })}>
         Мои отзывы
       </Link>
-      <span className="hidden text-sm text-muted-foreground sm:inline">{user.name}</span>
+      {/* Имя и аватарка берутся из токена: после изменений в настройках он перевыпускается, и шапка обновляется. */}
+      <Link
+        href="/settings"
+        aria-label={`Настройки профиля: ${user.name}`}
+        className="flex min-h-9 items-center gap-2 rounded-full pr-1 text-sm text-muted-foreground hover:text-foreground"
+      >
+        <Avatar id={user.id} name={user.name} src={avatarUrl(user.id, user.avatar)} size="xs" />
+        <span className="hidden sm:inline">{user.name}</span>
+      </Link>
       <LogoutButton />
     </nav>
   );

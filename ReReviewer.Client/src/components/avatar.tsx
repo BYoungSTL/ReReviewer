@@ -11,8 +11,11 @@ const PALETTE = [
 ];
 
 // Псевдоним в кавычках («PixelHunter») в инициалы не входит: «Иван «PixelHunter» Петров» → «ИП».
+// Слова не с буквы (цифры, знаки) тоже пропускаются: «Тест настроек 2» → «ТН».
 export function initials(name: string) {
-  const words = name.replace(/«[^»]*»/g, " ").split(/\s+/).filter(Boolean);
+  const all = name.replace(/«[^»]*»/g, " ").split(/\s+/).filter(Boolean);
+  const lettered = all.filter((word) => /^\p{L}/u.test(word));
+  const words = lettered.length > 0 ? lettered : all;
   const letters = words.length > 1 ? [words[0], words[words.length - 1]] : words;
 
   return letters.map((word) => word[0]).join("").toUpperCase();
@@ -25,23 +28,30 @@ function colorsOf(id: string) {
   return PALETTE[hash % PALETTE.length];
 }
 
-export function Avatar({ id, name, size = "md", className }: {
+// src — загруженная аватарка (lib/avatar.ts), без неё рисуются инициалы. Картинка декоративная: имя всегда написано рядом.
+export function Avatar({ id, name, src, size = "md", className }: {
   id: string;
   name: string;
-  size?: "sm" | "md" | "lg";
+  src?: string | null;
+  size?: "xs" | "sm" | "md" | "lg";
   className?: string;
 }) {
+  const sizeClass = cn(
+    size === "xs" && "size-8 text-[11px]",
+    size === "sm" && "size-9 text-xs",
+    size === "md" && "size-12 text-sm",
+    size === "lg" && "size-20 text-2xl sm:size-22",
+  );
+
+  if (src)
+    // eslint-disable-next-line @next/next/no-img-element -- аватарка уже 256×256 и отдаётся через BFF, оптимизатор ей не нужен
+    return <img src={src} alt="" width={256} height={256} className={cn("shrink-0 rounded-full object-cover", sizeClass, className)} />;
+
   return (
     <span
       aria-hidden="true"
       style={colorsOf(id)}
-      className={cn(
-        "inline-flex shrink-0 items-center justify-center rounded-full font-display font-bold",
-        size === "sm" && "size-9 text-xs",
-        size === "md" && "size-12 text-sm",
-        size === "lg" && "size-20 text-2xl sm:size-22",
-        className,
-      )}
+      className={cn("inline-flex shrink-0 items-center justify-center rounded-full font-display font-bold", sizeClass, className)}
     >
       {initials(name)}
     </span>

@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   robots: { index: false },
 };
 
-export default function NewReviewerPage() {
+export default function NewReviewerPage({ searchParams }: PageProps<"/reviewers/new">) {
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
       <div className="flex flex-col gap-2">
@@ -21,13 +21,15 @@ export default function NewReviewerPage() {
         </p>
       </div>
       <Suspense fallback={<p className="text-muted-foreground">Загружаем форму…</p>}>
-        <Suggest />
+        <Suggest searchParams={searchParams} />
       </Suspense>
     </div>
   );
 }
 
-async function Suggest() {
+// ?self=1 — пришли из настроек предложить себя: отметка «это я» уже стоит.
+async function Suggest({ searchParams }: Pick<PageProps<"/reviewers/new">, "searchParams">) {
+  const { self } = await searchParams;
   const api = await userApi();
   const [genres, me] = await Promise.all([getGenres(), api.GET("/api/auth/me")]);
   // proxy.ts уже увёл гостей без cookie, здесь отсеиваются просроченные токены.
@@ -36,5 +38,5 @@ async function Suggest() {
 
   const sorted = [...genres].sort((a, b) => a.title.localeCompare(b.title, "ru"));
 
-  return <SuggestForm genres={sorted} canClaim={user.reviewerId === null} />;
+  return <SuggestForm genres={sorted} canClaim={user.reviewerId === null} self={self === "1"} />;
 }

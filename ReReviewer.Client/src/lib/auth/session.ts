@@ -12,6 +12,8 @@ export type CurrentUser = {
   name: string;
   email: string;
   roles: string[];
+  // Версия аватарки (claim avatar) или null, если её нет. Токен перевыпускается при каждой смене аватарки.
+  avatar: string | null;
 };
 
 export async function getToken() {
@@ -51,6 +53,7 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
       email: claims.email,
       // Одна роль приходит строкой, несколько — массивом.
       roles: [claims.role ?? []].flat(),
+      avatar: claims.avatar ?? null,
     };
   } catch {
     return null;
