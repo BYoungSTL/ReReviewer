@@ -24,6 +24,8 @@ public class ReReviewerDbContext : DbContext
     public DbSet<Review> Reviews => Set<Review>();
     public DbSet<Criterion> Criteria => Set<Criterion>();
     public DbSet<ReviewCriterionScore> ReviewCriterionScores => Set<ReviewCriterionScore>();
+    public DbSet<ReviewerSuggestion> ReviewerSuggestions => Set<ReviewerSuggestion>();
+    public DbSet<ReviewerClaim> ReviewerClaims => Set<ReviewerClaim>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -42,6 +44,8 @@ public class ReReviewerDbContext : DbContext
         ReviewConfiguration(modelBuilder.Entity<Review>());
         CriterionConfiguration(modelBuilder.Entity<Criterion>());
         ReviewCriterionScoreConfiguration(modelBuilder.Entity<ReviewCriterionScore>());
+        ReviewerSuggestionConfiguration(modelBuilder.Entity<ReviewerSuggestion>());
+        ReviewerClaimConfiguration(modelBuilder.Entity<ReviewerClaim>());
     }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -282,6 +286,57 @@ public class ReReviewerDbContext : DbContext
 
         builder.ToTable(t => t.HasCheckConstraint(
             "CK_ReviewCriterionScores_Score", "[Score] BETWEEN 1 AND 10"));
+    }
+
+    // Заявка удаляется вместе с автором. Жанры заявки — отдельная связь, у жанра обратной навигации нет.
+    private void ReviewerSuggestionConfiguration(EntityTypeBuilder<ReviewerSuggestion> builder)
+    {
+        builder.HasKey(e => e.Id);
+
+        builder.Property(e => e.Id).IsRequired();
+        builder.Property(e => e.FullName).IsRequired().HasMaxLength(250);
+        builder.Property(e => e.Note).HasMaxLength(1000);
+        builder.Property(e => e.Status).IsRequired().HasConversion<string>().HasMaxLength(20);
+        builder.Property(e => e.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+
+        builder.HasIndex(e => new { e.Status, e.CreatedAt });
+
+        builder
+            .HasOne(e => e.User)
+            .WithMany()
+            .HasForeignKey(e => e.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder
+            .HasMany(e => e.Genres)
+            .WithMany()
+            .UsingEntity(j => j.ToTable("ReviewerSuggestionGenres"));
+    }
+
+    // Запрос удаляется вместе с автором или профилем. Ждать решения может только один запрос пользователя.
+    private void ReviewerClaimConfiguration(EntityTypeBuilder<ReviewerClaim> builder)
+    {
+        builder.HasKey(e => e.Id);
+
+        builder.Property(e => e.Id).IsRequired();
+        builder.Property(e => e.Note).IsRequired().HasMaxLength(1000);
+        builder.Property(e => e.Status).IsRequired().HasConversion<string>().HasMaxLength(20);
+        builder.Property(e => e.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+
+        builder.HasIndex(e => e.UserId).IsUnique().HasFilter("[Status] = 'Pending'");
+        builder.HasIndex(e => new { e.Status, e.CreatedAt });
+
+        builder
+            .HasOne(e => e.User)
+            .WithMany()
+            .HasForeignKey(e => e.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder
+            .HasOne(e => e.Reviewer)
+            .WithMany()
+            .HasForeignKey(e => e.ReviewerId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
     #endregion
 }
