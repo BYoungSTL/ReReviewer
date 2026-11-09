@@ -7118,6 +7118,115 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/users/me/reviewer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["ReviewerProfileViewModel"];
+                    "text/json": components["schemas"]["ReviewerProfileViewModel"];
+                    "application/*+json": components["schemas"]["ReviewerProfileViewModel"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ReviewerViewModel"];
+                        "application/json": components["schemas"]["ReviewerViewModel"];
+                        "text/json": components["schemas"]["ReviewerViewModel"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/users/{id}/avatar": {
         parameters: {
             query?: never;
@@ -8208,6 +8317,13 @@ export interface components {
             /** Format: date */
             endedAt: null | string;
         };
+        ReviewerProfileViewModel: {
+            fullName: string;
+            about: null | string;
+            links: string[];
+            genres: components["schemas"]["GenreViewModel"][];
+            outlets: components["schemas"]["ReviewerOutletViewModel"][];
+        };
         ReviewerRatingViewModel: {
             /** Format: uuid */
             reviewerId: string;
@@ -8245,6 +8361,8 @@ export interface components {
             userId: null | string;
             outlets: components["schemas"]["ReviewerOutletViewModel"][];
             badges: components["schemas"]["ReviewerBadgeViewModel"][];
+            about: null | string;
+            links: string[];
             /** Format: int32 */
             reviewCount: number;
             /** Format: double */
@@ -8334,6 +8452,7 @@ export type ReviewCriterionScoreViewModel = components['schemas']['ReviewCriteri
 export type ReviewerBadgeViewModel = components['schemas']['ReviewerBadgeViewModel'];
 export type ReviewerClaimViewModel = components['schemas']['ReviewerClaimViewModel'];
 export type ReviewerOutletViewModel = components['schemas']['ReviewerOutletViewModel'];
+export type ReviewerProfileViewModel = components['schemas']['ReviewerProfileViewModel'];
 export type ReviewerRatingViewModel = components['schemas']['ReviewerRatingViewModel'];
 export type ReviewerSuggestionViewModel = components['schemas']['ReviewerSuggestionViewModel'];
 export type ReviewerViewModel = components['schemas']['ReviewerViewModel'];
