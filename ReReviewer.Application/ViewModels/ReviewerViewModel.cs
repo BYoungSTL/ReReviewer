@@ -17,6 +17,10 @@ public class ReviewerViewModel
     public List<ReviewerOutletViewModel> Outlets { get; set; } = [];
     public List<ReviewerBadgeViewModel> Badges { get; set; } = [];
 
+    // Пишет сам обзорщик с подтверждённым аккаунтом (PUT api/users/me/reviewer).
+    public string? About { get; set; }
+    public List<string> Links { get; set; } = [];
+
     // По опубликованным отзывам. Без них — 0 и null. Критерии и распределение — в api/reviewers/{id}/rating.
     public int ReviewCount { get; set; }
     public double? AverageScore { get; set; }

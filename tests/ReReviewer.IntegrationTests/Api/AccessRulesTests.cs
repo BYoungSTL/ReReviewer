@@ -53,7 +53,7 @@ public class AccessRulesTests(ApiFixture api)
         ("GET", "api/reviews/moderation", Staff), ("POST", $"api/reviews/{G}/approve", Staff), ("POST", $"api/reviews/{G}/reject", Staff),
 
         ("PUT", "api/users/me", SignedIn), ("PUT", "api/users/me/password", SignedIn),
-        ("PUT", "api/users/me/avatar", SignedIn), ("DELETE", "api/users/me/avatar", SignedIn),
+        ("PUT", "api/users/me/avatar", SignedIn), ("DELETE", "api/users/me/avatar", SignedIn), ("PUT", "api/users/me/reviewer", SignedIn),
         ("GET", $"api/users/{G}/avatar", Everyone),
         ("GET", "api/users", AdminOnly), ("GET", $"api/users/{G}", AdminOnly), ("POST", "api/users", AdminOnly),
         ("PUT", $"api/users/{G}", AdminOnly), ("DELETE", $"api/users/{G}", AdminOnly), ("PUT", $"api/users/{G}/roles", AdminOnly),
