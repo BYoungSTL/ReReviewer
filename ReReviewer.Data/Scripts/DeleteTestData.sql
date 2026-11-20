@@ -70,7 +70,7 @@ DELETE FROM Materials
 WHERE ReviewerId IN (SELECT Id FROM @testReviewers);
 SET @materials = @@ROWCOUNT;
 
--- Жанры, издания и бейджи обзорщиков удаляются каскадом.
+-- Жанры, издания, бейджи обзорщиков и номинации на знаки удаляются каскадом.
 DELETE FROM Reviewers
 WHERE Id IN (SELECT Id FROM @testReviewers);
 SET @reviewers = @@ROWCOUNT;
@@ -87,7 +87,7 @@ SET @games = @@ROWCOUNT;
 
 SET @keptGames = (SELECT COUNT(*) FROM Games WHERE Id IN (SELECT Id FROM @testGames));
 
--- Роли пользователей удаляются каскадом; если к тестовому аккаунту был привязан ваш обзорщик, привязка сбрасывается.
+-- Роли и номинации пользователей удаляются каскадом; если к тестовому аккаунту был привязан ваш обзорщик, привязка сбрасывается.
 DELETE FROM Users
 WHERE Id IN (SELECT Id FROM @testUsers);
 SET @users = @@ROWCOUNT;
@@ -103,7 +103,8 @@ SET @criteria = @@ROWCOUNT;
 
 DELETE b FROM Badges b
 WHERE b.Title IN (N'Объективный', N'Глубокий разбор', N'Без спойлеров', N'Ветеран индустрии')
-  AND NOT EXISTS (SELECT 1 FROM ReviewerBadges rb WHERE rb.BadgeId = b.Id);
+  AND NOT EXISTS (SELECT 1 FROM ReviewerBadges rb WHERE rb.BadgeId = b.Id)
+  AND NOT EXISTS (SELECT 1 FROM BadgeNominations bn WHERE bn.BadgeId = b.Id);
 SET @badges = @@ROWCOUNT;
 
 DELETE g FROM Genres g

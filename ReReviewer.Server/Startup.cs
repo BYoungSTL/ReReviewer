@@ -119,6 +119,7 @@ namespace ReReviewer
             services.AddScoped<IReviewService, ReviewService>();
             services.AddScoped<IReviewerSuggestionService, ReviewerSuggestionService>();
             services.AddScoped<IReviewerClaimService, ReviewerClaimService>();
+            services.AddScoped<IBadgeNominationService, BadgeNominationService>();
 
             services.AddScoped<IUserAppService, UserAppService>();
             services.AddScoped<IRoleAppService, RoleAppService>();
@@ -131,6 +132,7 @@ namespace ReReviewer
             services.AddScoped<ICriterionAppService, CriterionAppService>();
             services.AddScoped<IReviewAppService, ReviewAppService>();
             services.AddScoped<IReviewerRequestAppService, ReviewerRequestAppService>();
+            services.AddScoped<IBadgeNominationAppService, BadgeNominationAppService>();
             services.AddScoped<IAuthAppService, AuthAppService>();
 
             services.AddSingleton<IJwtTokenService, JwtTokenService>();

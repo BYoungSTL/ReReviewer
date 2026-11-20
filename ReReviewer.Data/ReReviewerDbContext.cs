@@ -28,6 +28,7 @@ public class ReReviewerDbContext : DbContext
     public DbSet<ReviewerSuggestion> ReviewerSuggestions => Set<ReviewerSuggestion>();
     public DbSet<ReviewerClaim> ReviewerClaims => Set<ReviewerClaim>();
     public DbSet<UserAvatar> UserAvatars => Set<UserAvatar>();
+    public DbSet<BadgeNomination> BadgeNominations => Set<BadgeNomination>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -49,6 +50,7 @@ public class ReReviewerDbContext : DbContext
         ReviewerSuggestionConfiguration(modelBuilder.Entity<ReviewerSuggestion>());
         ReviewerClaimConfiguration(modelBuilder.Entity<ReviewerClaim>());
         UserAvatarConfiguration(modelBuilder.Entity<UserAvatar>());
+        BadgeNominationConfiguration(modelBuilder.Entity<BadgeNomination>());
     }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -360,6 +362,37 @@ public class ReReviewerDbContext : DbContext
             .HasOne<User>()
             .WithOne()
             .HasForeignKey<UserAvatar>(e => e.Id)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+
+    // Номинация удаляется вместе с автором, обзорщиком или знаком. Один пользователь номинирует обзорщика
+    // на знак только раз; очередь модерации группирует номинации по паре «обзорщик + знак».
+    private void BadgeNominationConfiguration(EntityTypeBuilder<BadgeNomination> builder)
+    {
+        builder.HasKey(e => e.Id);
+
+        builder.Property(e => e.Id).IsRequired();
+        builder.Property(e => e.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+
+        builder.HasIndex(e => new { e.UserId, e.ReviewerId, e.BadgeId }).IsUnique();
+        builder.HasIndex(e => new { e.ReviewerId, e.BadgeId });
+
+        builder
+            .HasOne(e => e.User)
+            .WithMany()
+            .HasForeignKey(e => e.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder
+            .HasOne(e => e.Reviewer)
+            .WithMany()
+            .HasForeignKey(e => e.ReviewerId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder
+            .HasOne(e => e.Badge)
+            .WithMany()
+            .HasForeignKey(e => e.BadgeId)
             .OnDelete(DeleteBehavior.Cascade);
     }
     #endregion

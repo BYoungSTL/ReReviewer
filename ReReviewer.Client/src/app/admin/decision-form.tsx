@@ -4,9 +4,11 @@ import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
 import type { AdminActionState } from "@/lib/admin/actions";
 
-// Решение модератора по отзыву или заявке: нажатая кнопка передаёт decision = approve или reject.
-export function DecisionForm({ action }: {
+// Решение модератора по отзыву, заявке или номинациям: нажатая кнопка передаёт decision = approve или reject.
+export function DecisionForm({ action, approveLabel = "Одобрить", rejectLabel = "Отклонить" }: {
   action: (state: AdminActionState, form: FormData) => Promise<AdminActionState>;
+  approveLabel?: string;
+  rejectLabel?: string;
 }) {
   const [state, formAction, pending] = useActionState(action, undefined);
 
@@ -15,10 +17,10 @@ export function DecisionForm({ action }: {
       {state?.error && <p className="text-sm text-destructive">{state.error}</p>}
       <div className="flex flex-wrap gap-2">
         <Button type="submit" name="decision" value="approve" size="sm" disabled={pending}>
-          Одобрить
+          {approveLabel}
         </Button>
         <Button type="submit" name="decision" value="reject" variant="outline" size="sm" disabled={pending}>
-          Отклонить
+          {rejectLabel}
         </Button>
       </div>
     </form>

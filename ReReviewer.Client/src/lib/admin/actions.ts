@@ -93,6 +93,32 @@ export async function moderateClaim(
   });
 }
 
+// Решение по номинациям пары «обзорщик + знак»: выдать знак или отклонить. Выданный знак виден в профиле
+// и в карточке на главной, поэтому сбрасываются оба кэша.
+export async function moderateNomination(
+  reviewerId: string,
+  badgeId: number,
+  _state: AdminActionState,
+  form: FormData,
+): Promise<AdminActionState> {
+  const approve = form.get("decision") === "approve";
+
+  return run("/admin/badges", "Не удалось сохранить решение.", async () => {
+    const api = await userApi();
+    const params = { params: { path: { reviewerId, badgeId } } };
+    const result = approve
+      ? await api.POST("/api/nominations/{reviewerId}/{badgeId}/approve", params)
+      : await api.POST("/api/nominations/{reviewerId}/{badgeId}/reject", params);
+
+    if (approve && result.response.ok) {
+      updateTag(reviewerTag(reviewerId));
+      updateTag("reviewers");
+    }
+
+    return result;
+  });
+}
+
 // Одна форма на пользователя, действие выбирает нажатая кнопка (intent).
 // reviewerId — привязанный профиль: после удаления пользователя в его шапке больше нет аккаунта.
 export async function moderateUser(

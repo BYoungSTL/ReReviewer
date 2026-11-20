@@ -106,6 +106,38 @@ namespace ReReviewer.Data.Migrations
                     b.ToTable("Badges");
                 });
 
+            modelBuilder.Entity("ReReviewer.Data.Entities.BadgeNomination", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("BadgeId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<Guid>("ReviewerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BadgeId");
+
+                    b.HasIndex("ReviewerId", "BadgeId");
+
+                    b.HasIndex("UserId", "ReviewerId", "BadgeId")
+                        .IsUnique();
+
+                    b.ToTable("BadgeNominations");
+                });
+
             modelBuilder.Entity("ReReviewer.Data.Entities.Criterion", b =>
                 {
                     b.Property<int>("Id")
@@ -627,6 +659,33 @@ namespace ReReviewer.Data.Migrations
                         .HasForeignKey("ReviewsId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("ReReviewer.Data.Entities.BadgeNomination", b =>
+                {
+                    b.HasOne("ReReviewer.Data.Entities.Badge", "Badge")
+                        .WithMany()
+                        .HasForeignKey("BadgeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ReReviewer.Data.Entities.Reviewer", "Reviewer")
+                        .WithMany()
+                        .HasForeignKey("ReviewerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ReReviewer.Data.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Badge");
+
+                    b.Navigation("Reviewer");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("ReReviewer.Data.Entities.Material", b =>
