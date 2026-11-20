@@ -1,16 +1,15 @@
-import { BadgeCheck } from "lucide-react";
 import type { Metadata } from "next";
-import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 import { Avatar } from "@/components/avatar";
 import { ReviewsList } from "@/components/reviews-list";
-import { getPublicUser, getReviewer, getUserReviews, isGuid } from "@/lib/api/public";
+import { getPublicUser, getUserReviews, isGuid } from "@/lib/api/public";
 import { avatarUrl } from "@/lib/avatar";
 import { formatDate } from "@/lib/format";
 
-// Публичная страница пользователя: имя, аватарка, подтверждённый профиль обзорщика и опубликованные отзывы.
-// Сюда ведёт шапка подтверждённого профиля обзорщика. Почты и ролей API здесь не отдаёт.
+// Публичная страница пользователя: имя, аватарка и опубликованные отзывы. Почты и ролей API здесь не отдаёт.
+// Аккаунт, привязанный модератором к профилю обзорщика, отдельной страницы не имеет: его профиль — страница
+// обзорщика, а свои отзывы там на вкладке «От обзорщика». Туда эта страница и переадресует.
 // В поиск страница не попадает: искать стоит обзорщиков, а не участников сайта.
 export async function generateMetadata({ params }: PageProps<"/users/[id]">): Promise<Metadata> {
   const { id } = await params;
@@ -36,7 +35,7 @@ async function UserProfile({ params }: Pick<PageProps<"/users/[id]">, "params">)
 
   const [user, reviews] = await Promise.all([getPublicUser(id), getUserReviews(id)]);
   if (!user) notFound();
-  const reviewer = user.reviewerId ? await getReviewer(user.reviewerId) : null;
+  if (user.reviewerId) redirect(`/reviewers/${user.reviewerId}?tab=written`);
 
   return (
     <div className="flex flex-col gap-7">
@@ -45,15 +44,6 @@ async function UserProfile({ params }: Pick<PageProps<"/users/[id]">, "params">)
         <div className="flex min-w-0 flex-col gap-2">
           <h1 className="text-3xl leading-tight font-bold break-words sm:text-4xl">{user.name}</h1>
           <p className="text-secondary-foreground/85">На ReReviewer с {formatDate(user.createdAt)}</p>
-          {reviewer && (
-            <Link
-              href={`/reviewers/${user.reviewerId}`}
-              className="inline-flex items-center gap-1.5 self-start text-sm font-semibold text-primary hover:underline"
-            >
-              <BadgeCheck aria-hidden="true" className="size-4" />
-              Подтверждённый профиль обзорщика: {reviewer.fullName}
-            </Link>
-          )}
         </div>
       </section>
 

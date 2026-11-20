@@ -65,7 +65,7 @@ public class AccessRulesTests(ApiFixture api)
         ("POST", "api/claims", SignedIn), ("GET", "api/claims/my", SignedIn),
         ("GET", "api/claims/moderation", Staff), ("POST", $"api/claims/{G}/approve", Staff), ("POST", $"api/claims/{G}/reject", Staff),
 
-        ("GET", "api/auth/me", SignedIn)
+        ("GET", "api/auth/me", SignedIn), ("POST", "api/auth/refresh", SignedIn)
     ];
 
     public static TheoryData<string, string, string, string> Cases()

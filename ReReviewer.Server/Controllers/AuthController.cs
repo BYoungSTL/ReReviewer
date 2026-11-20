@@ -37,4 +37,11 @@ public class AuthController(
     [HttpGet("me")]
     public async Task<ActionResult<UserViewModel>> Me() =>
         await userAppService.GetUserAsync(CurrentUserId);
+
+    // Новый токен с текущими данными аккаунта: например, после правки профиля обзорщика в нём новое имя.
+    // Токен заблокированного или сменившего пароль сюда не пройдёт: на него API ответит 401 ещё до метода.
+    [Authorize]
+    [HttpPost("refresh")]
+    public async Task<ActionResult<AuthTokenViewModel>> Refresh() =>
+        tokenService.CreateToken(await userAppService.GetUserAsync(CurrentUserId));
 }

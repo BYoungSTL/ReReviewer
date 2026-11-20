@@ -7,8 +7,8 @@ import { Suspense } from "react";
 import { Avatar } from "@/components/avatar";
 import { ReviewsList } from "@/components/reviews-list";
 import { buttonVariants } from "@/components/ui/button";
-import { getPublicUser, getReviewer, getReviewerMaterials, getReviewerRating, getReviewerReviews, isGuid } from "@/lib/api/public";
-import type { MaterialViewModel, PublicUserViewModel, ReviewerRatingViewModel, ReviewerViewModel } from "@/lib/api/schema";
+import { getReviewer, getReviewerMaterials, getReviewerRating, getReviewerReviews, getUserReviews, isGuid } from "@/lib/api/public";
+import type { MaterialViewModel, PagedViewModelOfReviewViewModel, ReviewerRatingViewModel, ReviewerViewModel } from "@/lib/api/schema";
 import { getCurrentUser } from "@/lib/auth/session";
 import { avatarUrl } from "@/lib/avatar";
 import { formatDate, formatScore, materialFormatLabel, pluralize } from "@/lib/format";
@@ -42,16 +42,19 @@ export async function generateMetadata({ params }: PageProps<"/reviewers/[id]">)
   };
 }
 
-export default function ReviewerPage({ params }: PageProps<"/reviewers/[id]">) {
+// Вкладка «От обзорщика» в адресе: ею можно поделиться, и на неё ведёт страница привязанного аккаунта (/users/[id]).
+const WRITTEN_TAB = "written";
+
+export default function ReviewerPage({ params, searchParams }: PageProps<"/reviewers/[id]">) {
   return (
     <Suspense fallback={<p className="text-muted-foreground">Загружаем профиль…</p>}>
-      <ReviewerProfile params={params} />
+      <ReviewerProfile params={params} searchParams={searchParams} />
     </Suspense>
   );
 }
 
-async function ReviewerProfile({ params }: Pick<PageProps<"/reviewers/[id]">, "params">) {
-  const { id } = await params;
+async function ReviewerProfile({ params, searchParams }: Pick<PageProps<"/reviewers/[id]">, "params" | "searchParams">) {
+  const [{ id }, { tab }] = await Promise.all([params, searchParams]);
   if (!isGuid(id)) notFound();
 
   const [reviewer, rating, reviews, materials, user] = await Promise.all([
@@ -65,8 +68,9 @@ async function ReviewerProfile({ params }: Pick<PageProps<"/reviewers/[id]">, "p
   // Владелец подтверждённого профиля видит «Редактировать профиль» вместо «Написать отзыв». Это только интерфейс:
   // какой профиль менять, API определяет по токену.
   const isOwner = user !== null && reviewer.userId === user.id;
-  // Аккаунт, к которому модератор привязал профиль: читатели видят, кто стоит за профилем.
-  const owner = reviewer.userId ? await getPublicUser(reviewer.userId) : null;
+  // Профиль, подтверждённый модератором, и аккаунт обзорщика — один профиль: здесь же отзывы, которые он сам
+  // написал о других обзорщиках. Первые страницы обеих вкладок загружаются сразу, чтобы показать их счётчики.
+  const written = reviewer.userId ? await getUserReviews(reviewer.userId) : null;
 
   return (
     <div className="flex flex-col gap-7">
@@ -75,7 +79,7 @@ async function ReviewerProfile({ params }: Pick<PageProps<"/reviewers/[id]">, "p
         Все обзорщики
       </Link>
 
-      <ProfileHeader id={id} reviewer={reviewer} owner={owner} isOwner={isOwner} />
+      <ProfileHeader id={id} reviewer={reviewer} isOwner={isOwner} />
 
       <div className="flex flex-wrap items-start gap-6">
         <RatingPanel rating={rating} />
@@ -84,10 +88,22 @@ async function ReviewerProfile({ params }: Pick<PageProps<"/reviewers/[id]">, "p
           {materials.length > 0 && <Materials materials={materials} />}
 
           <section className="flex flex-col gap-3">
-            <h2 className="font-display text-xl font-bold">
-              Отзывы <span className="font-medium text-muted-foreground">{reviews.totalCount}</span>
-            </h2>
-            <ReviewsList source={{ kind: "reviewer", id }} firstPage={reviews} />
+            {written && reviewer.userId ? (
+              <ReviewTabs
+                id={id}
+                about={reviews}
+                written={written}
+                writtenBy={reviewer.userId}
+                showWritten={tab === WRITTEN_TAB}
+              />
+            ) : (
+              <>
+                <h2 className="font-display text-xl font-bold">
+                  Отзывы <span className="font-medium text-muted-foreground">{reviews.totalCount}</span>
+                </h2>
+                <ReviewsList source={{ kind: "reviewer", id }} firstPage={reviews} />
+              </>
+            )}
           </section>
         </div>
       </div>
@@ -95,10 +111,49 @@ async function ReviewerProfile({ params }: Pick<PageProps<"/reviewers/[id]">, "p
   );
 }
 
-function ProfileHeader({ id, reviewer, owner, isOwner }: {
+// Две вкладки подтверждённого профиля: отзывы читателей об этом обзорщике и отзывы, которые он сам оставил
+// о других обзорщиках со своего аккаунта. Вкладки — ссылки: вкладка «От обзорщика» открывается по ?tab=written.
+function ReviewTabs({ id, about, written, writtenBy, showWritten }: {
+  id: string;
+  about: PagedViewModelOfReviewViewModel;
+  written: PagedViewModelOfReviewViewModel;
+  writtenBy: string;
+  showWritten: boolean;
+}) {
+  const tabs = [
+    { label: "Об обзорщике", count: about.totalCount, href: `/reviewers/${id}`, active: !showWritten },
+    { label: "От обзорщика", count: written.totalCount, href: `/reviewers/${id}?tab=${WRITTEN_TAB}`, active: showWritten },
+  ];
+
+  return (
+    <>
+      <h2 className="font-display text-xl font-bold">Отзывы</h2>
+      <nav aria-label="Отзывы" className="flex flex-wrap gap-1 border-b pb-2">
+        {tabs.map((tab) => (
+          <Link
+            key={tab.href}
+            href={tab.href}
+            scroll={false}
+            replace
+            aria-current={tab.active ? "page" : undefined}
+            className={cn(buttonVariants({ variant: tab.active ? "secondary" : "ghost", size: "sm" }), "gap-1.5")}
+          >
+            {tab.label}
+            <span className="font-medium text-muted-foreground tabular-nums">{tab.count}</span>
+          </Link>
+        ))}
+      </nav>
+      {/* key — чтобы при смене вкладки список начинался заново, а не с подгруженных страниц другой вкладки. */}
+      {showWritten
+        ? <ReviewsList key="written" source={{ kind: "user", id: writtenBy }} firstPage={written} />
+        : <ReviewsList key="about" source={{ kind: "reviewer", id }} firstPage={about} />}
+    </>
+  );
+}
+
+function ProfileHeader({ id, reviewer, isOwner }: {
   id: string;
   reviewer: ReviewerViewModel;
-  owner: PublicUserViewModel | null;
   isOwner: boolean;
 }) {
   const current = currentOutlets(reviewer);
@@ -108,7 +163,8 @@ function ProfileHeader({ id, reviewer, owner, isOwner }: {
     <section className="flex flex-col gap-6 rounded-3xl border bg-card p-6 sm:p-7">
       <div className="flex flex-wrap items-end justify-between gap-6">
         <div className="flex min-w-0 flex-wrap items-center gap-5">
-          <Avatar id={id} name={reviewer.fullName} size="lg" />
+          {/* Аватарка привязанного аккаунта — она же аватарка профиля. */}
+          <Avatar id={id} name={reviewer.fullName} src={reviewer.userId ? avatarUrl(reviewer.userId, reviewer.avatarUpdatedAt) : null} size="lg" />
           <div className="flex min-w-0 flex-col gap-2">
             <h1 className="text-3xl leading-tight font-bold sm:text-4xl">{reviewer.fullName}</h1>
             <p className="text-secondary-foreground/85">
@@ -136,24 +192,11 @@ function ProfileHeader({ id, reviewer, owner, isOwner }: {
                 ))}
               </ul>
             )}
-            {/* Привязанный профиль подтверждён модератором (запрос «это я»), к остальным можно отправить такой запрос.
-                Рядом — аккаунт владельца со ссылкой на его страницу. */}
+            {/* Привязанный профиль подтверждён модератором (запрос «это я»), к остальным можно отправить такой запрос. */}
             {reviewer.userId ? (
-              <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm">
-                <span className="inline-flex items-center gap-1.5 font-semibold text-primary">
-                  <BadgeCheck aria-hidden="true" className="size-4" />
-                  Профиль подтверждён автором
-                </span>
-                {/* На телефоне аккаунт — отдельной строкой: иначе перенос начинал бы её с разделителя. */}
-                {owner && (
-                  <span className="inline-flex basis-full items-center gap-1.5 sm:basis-auto">
-                    <span className="text-muted-foreground"><span aria-hidden="true" className="hidden sm:inline">· </span>аккаунт</span>
-                    <Link href={`/users/${owner.id}`} className="inline-flex items-center gap-1.5 font-semibold hover:underline">
-                      <Avatar id={owner.id} name={owner.name} src={avatarUrl(owner.id, owner.avatarUpdatedAt)} size="xs" className="size-5 text-[9px]" />
-                      {owner.name}
-                    </Link>
-                  </span>
-                )}
+              <p className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary">
+                <BadgeCheck aria-hidden="true" className="size-4" />
+                Профиль подтверждён автором
               </p>
             ) : (
               <Link href={`/reviewers/${id}/claim`} className="self-start text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">

@@ -123,6 +123,7 @@ public class ReviewerAppService(IReviewerService reviewerService, IGenreService 
                 .Select(g => new GenreViewModel { Id = g.Id, Title = g.Title })
                 .ToList(),
             UserId = reviewer.UserId,
+            AvatarUpdatedAt = reviewer.User?.AvatarUpdatedAt,
             Outlets = reviewer.Outlets
                 .OrderBy(link => link.Outlet.Name)
                 .Select(link => new ReviewerOutletViewModel

@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getReviewers } from "@/lib/api/public";
 import type { ReviewerViewModel } from "@/lib/api/schema";
+import { avatarUrl } from "@/lib/avatar";
 import { pluralize } from "@/lib/format";
 import { outletLine } from "@/lib/reviewers";
 import { SortSelect } from "./sort-select";
@@ -152,7 +153,11 @@ function ReviewerCard({ reviewer }: { reviewer: ReviewerViewModel }) {
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
-          <Avatar id={reviewer.id ?? reviewer.fullName} name={reviewer.fullName} />
+          <Avatar
+            id={reviewer.id ?? reviewer.fullName}
+            name={reviewer.fullName}
+            src={reviewer.userId ? avatarUrl(reviewer.userId, reviewer.avatarUpdatedAt) : null}
+          />
           <div className="min-w-0">
             <div className="text-[17px] leading-snug font-bold">{reviewer.fullName}</div>
             <div className="text-sm text-muted-foreground">{outletLine(reviewer)}</div>

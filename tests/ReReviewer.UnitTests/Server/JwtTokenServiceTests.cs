@@ -57,6 +57,28 @@ public class JwtTokenServiceTests
     }
 
     [Fact]
+    public void CreateToken_UnlinkedUser_HasAccountNameAndNoReviewerClaim()
+    {
+        var token = new JsonWebToken(CreateService().CreateToken(_user).Token);
+
+        token.GetClaim("name").Value.ShouldBe("player");
+        token.TryGetClaim("reviewer", out _).ShouldBeFalse();
+    }
+
+    // Привязанный аккаунт и профиль обзорщика — одно лицо: на сайте виден профиль.
+    [Fact]
+    public void CreateToken_LinkedUser_HasReviewerNameAndReviewerClaim()
+    {
+        var reviewerId = Guid.NewGuid();
+        var linked = new UserViewModel { Id = Guid.NewGuid(), Name = "account", Email = "a@test.local", ReviewerId = reviewerId, ReviewerName = "Reviewer" };
+
+        var token = new JsonWebToken(CreateService().CreateToken(linked).Token);
+
+        token.GetClaim("name").Value.ShouldBe("Reviewer");
+        token.GetClaim("reviewer").Value.ShouldBe(reviewerId.ToString());
+    }
+
+    [Fact]
     public void CreateToken_ExpiresAfterConfiguredLifetime()
     {
         var result = CreateService().CreateToken(_user);

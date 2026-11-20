@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Microsoft.IdentityModel.JsonWebTokens;
 using ReReviewer.IntegrationTests.Infrastructure;
 
 namespace ReReviewer.IntegrationTests.Api;
@@ -85,6 +86,49 @@ public class ReviewerProfileApiTests(ApiFixture api)
 
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("detail").GetString().ShouldBe(detail);
+    }
+
+    // Привязанный аккаунт и профиль — одно лицо: в токене и у отзывов автора имя профиля, а не аккаунта.
+    [Fact]
+    public async Task LinkedAccount_AppearsUnderReviewerName_AndRefreshPicksUpRename()
+    {
+        var genre = await CreateAsync("api/genres", new { title = TestData.Unique("Genre") });
+        var (reviewerId, owner) = await LinkedReviewerAsync(genre);
+        var reviewerName = (await owner.GetFromJsonAsync<JsonElement>($"api/reviewers/{reviewerId}")).GetProperty("fullName").GetString();
+
+        var token = new JsonWebToken(owner.DefaultRequestHeaders.Authorization!.Parameter);
+        token.GetClaim("name").Value.ShouldBe(reviewerName);
+        token.GetClaim("reviewer").Value.ShouldBe(reviewerId);
+
+        var other = await CreateAsync("api/reviewers", new { fullName = TestData.Unique("Other"), genres = new[] { new { id = int.Parse(genre) } } });
+        using var created = await owner.PostAsJsonAsync("api/reviews", new { reviewerId = other, text = "Коллега пишет честно", score = 8 });
+        created.EnsureSuccessStatusCode();
+        var review = await created.Content.ReadFromJsonAsync<JsonElement>();
+        review.GetProperty("userName").GetString().ShouldBe(reviewerName);
+        review.GetProperty("userReviewerId").GetString().ShouldBe(reviewerId);
+
+        var renamed = TestData.Unique("Renamed");
+        (await owner.PutAsJsonAsync("api/users/me/reviewer", new { fullName = renamed, genres = new[] { new { id = int.Parse(genre) } } })).EnsureSuccessStatusCode();
+        using var refreshed = await owner.PostAsync("api/auth/refresh", null);
+        refreshed.EnsureSuccessStatusCode();
+        var newToken = (await refreshed.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("token").GetString()!;
+        new JsonWebToken(newToken).GetClaim("name").Value.ShouldBe(renamed);
+    }
+
+    // Аватарка привязанного аккаунта — она же аватарка профиля.
+    [Fact]
+    public async Task LinkedAccount_AvatarIsShownOnReviewerProfile()
+    {
+        var genre = await CreateAsync("api/genres", new { title = TestData.Unique("Genre") });
+        var (reviewerId, owner) = await LinkedReviewerAsync(genre);
+        (await owner.GetFromJsonAsync<JsonElement>($"api/reviewers/{reviewerId}")).GetProperty("avatarUpdatedAt").ValueKind.ShouldBe(JsonValueKind.Null);
+
+        byte[] png = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 0];
+        using var form = new MultipartFormDataContent { { new ByteArrayContent(png), "file", "avatar.png" } };
+        (await owner.PutAsync("api/users/me/avatar", form)).EnsureSuccessStatusCode();
+
+        var reviewer = await owner.GetFromJsonAsync<JsonElement>($"api/reviewers/{reviewerId}");
+        reviewer.GetProperty("avatarUpdatedAt").GetString().ShouldNotBeNull().ShouldEndWith("Z");
     }
 
     // Новый обзорщик, привязанный модератором к новому пользователю; клиент — от имени этого пользователя.

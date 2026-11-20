@@ -7,9 +7,10 @@ using ReReviewer.Application.ViewModels;
 
 namespace ReReviewer.Security;
 
-// Выпускает JWT, подписанный HMAC-SHA256. Claims: sub — Id пользователя, name, email, по claim role
-// на каждую роль и avatar — версия аватарки, если она есть (сайт строит по ней адрес картинки).
-// Короткие имена claims совпадают с NameClaimType/RoleClaimType в Startup.
+// Выпускает JWT, подписанный HMAC-SHA256. Claims: sub — Id пользователя, name — имя на сайте, email, по claim role
+// на каждую роль, avatar — версия аватарки, если она есть (сайт строит по ней адрес картинки), и reviewer —
+// профиль обзорщика, к которому привязан аккаунт. У привязанного аккаунта name — имя этого профиля: на сайте
+// аккаунт и профиль — одно лицо. Короткие имена claims совпадают с NameClaimType/RoleClaimType в Startup.
 public class JwtTokenService(IOptions<JwtOptions> options) : IJwtTokenService
 {
     public AuthTokenViewModel CreateToken(UserViewModel user)
@@ -20,12 +21,14 @@ public class JwtTokenService(IOptions<JwtOptions> options) : IJwtTokenService
         var claims = new List<Claim>
         {
             new(JwtRegisteredClaimNames.Sub, user.Id!.Value.ToString()),
-            new(JwtRegisteredClaimNames.Name, user.Name),
+            new(JwtRegisteredClaimNames.Name, user.ReviewerName ?? user.Name),
             new(JwtRegisteredClaimNames.Email, user.Email)
         };
         claims.AddRange(user.Roles.Select(role => new Claim("role", role.Title)));
         if (user.AvatarUpdatedAt is { } avatarUpdatedAt)
             claims.Add(new Claim("avatar", avatarUpdatedAt.Ticks.ToString(CultureInfo.InvariantCulture)));
+        if (user.ReviewerId is { } reviewerId)
+            claims.Add(new Claim("reviewer", reviewerId.ToString()));
 
         var token = new JsonWebTokenHandler().CreateToken(new SecurityTokenDescriptor
         {

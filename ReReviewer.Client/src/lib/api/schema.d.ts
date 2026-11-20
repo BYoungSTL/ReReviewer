@@ -325,6 +325,109 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["AuthTokenViewModel"];
+                        "application/json": components["schemas"]["AuthTokenViewModel"];
+                        "text/json": components["schemas"]["AuthTokenViewModel"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Not Found */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+                /** @description Internal Server Error */
+                500: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["ProblemDetails"];
+                        "application/json": components["schemas"]["ProblemDetails"];
+                        "text/json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/badges": {
         parameters: {
             query?: never;
@@ -8583,6 +8686,8 @@ export interface components {
             genres: components["schemas"]["GenreViewModel"][];
             /** Format: uuid */
             userId: null | string;
+            /** Format: date-time */
+            avatarUpdatedAt: null | string;
             outlets: components["schemas"]["ReviewerOutletViewModel"][];
             badges: components["schemas"]["ReviewerBadgeViewModel"][];
             about: null | string;
@@ -8612,6 +8717,8 @@ export interface components {
             materials: components["schemas"]["ReviewMaterialViewModel"][];
             criterionScores: components["schemas"]["ReviewCriterionScoreViewModel"][];
             userName: null | string;
+            /** Format: uuid */
+            userReviewerId: null | string;
             /** Format: date-time */
             userAvatarUpdatedAt: null | string;
             reviewerName: null | string;
@@ -8641,6 +8748,7 @@ export interface components {
             roles: components["schemas"]["RoleViewModel"][];
             /** Format: uuid */
             reviewerId: null | string;
+            reviewerName: null | string;
             /** Format: date-time */
             createdAt: string;
             /** Format: date-time */
