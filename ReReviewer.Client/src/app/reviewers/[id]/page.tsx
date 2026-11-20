@@ -7,13 +7,15 @@ import { Suspense } from "react";
 import { Avatar } from "@/components/avatar";
 import { ReviewsList } from "@/components/reviews-list";
 import { buttonVariants } from "@/components/ui/button";
-import { getReviewer, getReviewerMaterials, getReviewerRating, getReviewerReviews, getUserReviews, isGuid } from "@/lib/api/public";
+import { userApi } from "@/lib/api/client";
+import { getBadges, getReviewer, getReviewerMaterials, getReviewerRating, getReviewerReviews, getUserReviews, isGuid } from "@/lib/api/public";
 import type { MaterialViewModel, PagedViewModelOfReviewViewModel, ReviewerRatingViewModel, ReviewerViewModel } from "@/lib/api/schema";
 import { getCurrentUser } from "@/lib/auth/session";
 import { avatarUrl } from "@/lib/avatar";
 import { formatDate, formatPercent, formatScore, materialFormatLabel, pluralize } from "@/lib/format";
 import { currentOutlets, linkLabel, outletPeriod, pastOutlets } from "@/lib/reviewers";
 import { SCORE_BG, SCORE_TEXT, scoreTone } from "@/lib/score";
+import { BadgeNominations } from "./badge-nominations";
 
 const FORMAT_ICONS: Record<string, LucideIcon> = {
   Video,
@@ -45,6 +47,15 @@ export async function generateMetadata({ params }: PageProps<"/reviewers/[id]">)
 // Вкладка «От обзорщика» в адресе: ею можно поделиться, и на неё ведёт страница привязанного аккаунта (/users/[id]).
 const WRITTEN_TAB = "written";
 
+// Знаки, на которые текущий пользователь номинировал обзорщика. Без кэша: это данные вошедшего.
+// Просроченный токен — как будто номинаций нет; при нажатии на знак Server Action уведёт на вход.
+async function myNominations(reviewerId: string) {
+  const api = await userApi();
+  const { data } = await api.GET("/api/nominations/my", { params: { query: { reviewerId } } });
+
+  return data ?? [];
+}
+
 export default function ReviewerPage({ params, searchParams }: PageProps<"/reviewers/[id]">) {
   return (
     <Suspense fallback={<p className="text-muted-foreground">Загружаем профиль…</p>}>
@@ -71,6 +82,15 @@ async function ReviewerProfile({ params, searchParams }: Pick<PageProps<"/review
   // Профиль, подтверждённый модератором, и аккаунт обзорщика — один профиль: здесь же отзывы, которые он сам
   // написал о других обзорщиках. Первые страницы обеих вкладок загружаются сразу, чтобы показать их счётчики.
   const written = reviewer.userId ? await getUserReviews(reviewer.userId) : null;
+  // Номинировать можно на знаки, которых у обзорщика ещё нет. Свои номинации — только вошедшему и не владельцу:
+  // свой профиль номинировать нельзя, и для владельца блока нет.
+  const awardedIds = reviewer.badges.map((badge) => badge.badgeId);
+  const [catalog, nominatedIds] = await Promise.all([
+    getBadges(),
+    user && !isOwner ? myNominations(id) : Promise.resolve([]),
+  ]);
+  const nominatable = catalog
+    .flatMap((badge) => (badge.id === null || awardedIds.includes(badge.id) ? [] : [{ id: badge.id, title: badge.title }]));
 
   return (
     <div className="flex flex-col gap-7">
@@ -86,6 +106,27 @@ async function ReviewerProfile({ params, searchParams }: Pick<PageProps<"/review
 
         <div className="flex min-w-0 flex-[999_1_560px] flex-col gap-8">
           {materials.length > 0 && <Materials materials={materials} />}
+
+          {!isOwner && nominatable.length > 0 && (
+            <section className="flex flex-col gap-3">
+              <div className="flex flex-col gap-1">
+                <h2 className="font-display text-xl font-bold">Номинировать на знак</h2>
+                <p className="text-sm text-muted-foreground">
+                  Считаете, что обзорщик заслуживает знак? Номинируйте его: модераторы видят, сколько читателей за знак, и выдают его.
+                </p>
+              </div>
+              {user ? (
+                <BadgeNominations reviewerId={id} badges={nominatable} nominatedIds={nominatedIds} />
+              ) : (
+                <p className="text-sm">
+                  <Link href={`/login?returnTo=${encodeURIComponent(`/reviewers/${id}`)}`} className="font-semibold text-primary underline-offset-4 hover:underline">
+                    Войдите
+                  </Link>
+                  , чтобы номинировать обзорщика.
+                </p>
+              )}
+            </section>
+          )}
 
           <section className="flex flex-col gap-3">
             {written && reviewer.userId ? (

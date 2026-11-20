@@ -42,6 +42,9 @@ public static class TestData
         return result;
     }
 
+    public static Task<Badge> BadgeAsync(ReReviewerDbContext db) =>
+        SaveAsync(db, new Badge { Title = Unique("Badge") });
+
     public static Task<Material> MaterialAsync(ReReviewerDbContext db, Guid reviewerId, Guid gameId) =>
         SaveAsync(db, new Material
         {

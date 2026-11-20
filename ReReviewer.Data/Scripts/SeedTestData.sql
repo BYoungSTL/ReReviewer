@@ -208,6 +208,18 @@ INSERT INTO ReviewerBadges (ReviewerId, BadgeId, AwardedAt) VALUES
     (@rMaxim, @bVeteran,    '2026-09-01T00:00:00'),
     (@rKate,  @bNoSpoilers, '2026-10-01T00:00:00');
 
+-- Номинации на знаки, которых у обзорщика ещё нет: их видит модератор на /admin/badges с числом номинаций.
+-- Иван номинирует только других: свой профиль номинировать нельзя.
+INSERT INTO BadgeNominations (Id, UserId, ReviewerId, BadgeId, CreatedAt) VALUES
+    (NEWID(), @uAlex,   @rIvan,   @bDeep,       '2026-10-02T10:00:00'),
+    (NEWID(), @uMaria,  @rIvan,   @bDeep,       '2026-10-05T18:30:00'),
+    (NEWID(), @uDmitry, @rIvan,   @bDeep,       '2026-10-11T09:15:00'),
+    (NEWID(), @uOlga,   @rAnna,   @bVeteran,    '2026-10-07T20:00:00'),
+    (NEWID(), @uAlex,   @rAnna,   @bVeteran,    '2026-10-15T12:40:00'),
+    (NEWID(), @uIvan,   @rMaxim,  @bObjective,  '2026-10-20T16:10:00'),
+    (NEWID(), @uDmitry, @rSergey, @bObjective,  '2026-10-22T08:05:00'),
+    (NEWID(), @uOlga,   @rKate,   @bDeep,       '2026-10-24T21:30:00');
+
 -----------------------------------------------------------------------------------------------
 -- Материалы обзорщиков (OriginalScore — оценка игре по шкале 0–10, NULL — без оценки)
 -----------------------------------------------------------------------------------------------

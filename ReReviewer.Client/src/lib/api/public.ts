@@ -85,6 +85,17 @@ export async function getOutlets() {
   return data ?? failed(response);
 }
 
+// Знаки, на которые можно номинировать обзорщика. Их набор меняют только через API, поэтому кэш живёт свои минуты.
+export async function getBadges() {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag("badges");
+
+  const { data, response } = await publicApi.GET("/api/badges");
+
+  return data ?? failed(response);
+}
+
 export async function getGenres() {
   "use cache";
   cacheLife("minutes");
