@@ -1,7 +1,7 @@
 ﻿namespace ReReviewer.Data.Models;
 
 // MaterialIds может быть пустым — тогда отзыв о работе обзорщика в целом.
-// CriterionScores: Id критерия → балл от 1 до 10.
+// CriterionScores: Id критерия → процент от 0 до 100, по каждому критерию (все обязательны).
 public record ReviewInput(
     string Text,
     byte Score,

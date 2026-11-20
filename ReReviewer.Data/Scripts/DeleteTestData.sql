@@ -97,17 +97,7 @@ SET @users = @@ROWCOUNT;
 -----------------------------------------------------------------------------------------------
 
 DELETE c FROM Criteria c
-JOIN (VALUES
-    (N'Объективность', NULL),
-    (N'Глубина анализа', NULL),
-    (N'Подача', NULL),
-    (N'Знание игры', NULL),
-    (N'Разбор билдов', N'RPG'),
-    (N'Анализ баланса', N'Strategy'),
-    (N'Атмосфера и напряжение', N'Horror')
-) AS v(Title, GenreTitle) ON v.Title = c.Title
-LEFT JOIN Genres g ON g.Title = v.GenreTitle
-WHERE ((v.GenreTitle IS NULL AND c.GenreId IS NULL) OR c.GenreId = g.Id)
+WHERE c.Title IN (N'Объективность', N'Глубина анализа', N'Подача', N'Знание игры')
   AND NOT EXISTS (SELECT 1 FROM ReviewCriterionScores s WHERE s.CriterionId = c.Id);
 SET @criteria = @@ROWCOUNT;
 
@@ -118,7 +108,6 @@ SET @badges = @@ROWCOUNT;
 
 DELETE g FROM Genres g
 WHERE g.Title IN (N'RPG', N'Action', N'Shooter', N'Strategy', N'Indie', N'Horror')
-  AND NOT EXISTS (SELECT 1 FROM Criteria c WHERE c.GenreId = g.Id)
   AND NOT EXISTS (SELECT 1 FROM GameGenres gg WHERE gg.GenresId = g.Id)
   AND NOT EXISTS (SELECT 1 FROM ReviewerGenres rg WHERE rg.GenresId = g.Id);
 SET @genres = @@ROWCOUNT;

@@ -30,7 +30,7 @@ public class GenreAppService(IGenreService genreService) : IGenreAppService
         return true;
     }
 
-    // Жанр, у которого есть критерии, удалить нельзя (ограничение базы).
+    // Вместе с жанром пропадают его связи с играми, обзорщиками и заявками; сами они остаются.
     public async Task DeleteGenreAsync(int genreId) =>
         await genreService.DeleteRequiredAsync(genreId);
 

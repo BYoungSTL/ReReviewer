@@ -8,10 +8,12 @@ public record ReviewerRating(
     IReadOnlyList<CriterionRating> Criteria,
     IReadOnlyList<ScoreCount> Scores);
 
+// AverageScore — средний процент (0–100) по опубликованным отзывам; null — по критерию ещё нет оценок.
+// Критерии обязательны в каждом отзыве, поэтому в рейтинге есть все, даже без оценок.
 public record CriterionRating(
     int CriterionId,
     string Title,
-    double AverageScore,
+    double? AverageScore,
     int ScoreCount);
 
 public record ScoreCount(

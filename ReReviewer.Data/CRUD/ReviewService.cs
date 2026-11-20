@@ -12,9 +12,14 @@ namespace ReReviewer.Data.CRUD;
 // UnauthorizedAccessException — попытка изменить чужой отзыв.
 public class ReviewService(ReReviewerDbContext context) : BaseService<Review, Guid>(context), IReviewService
 {
+    // Общая оценка отзыва — от 1 до 10.
     private const byte MinScore = 1;
     private const byte MaxScore = 10;
     private const int MaxPageSize = 100;
+
+    // Оценка по критерию — процент от 0 до 100.
+    private const byte MinCriterionScore = 0;
+    private const byte MaxCriterionScore = 100;
 
     #region Create / Edit / Delete
 
@@ -156,12 +161,17 @@ public class ReviewService(ReReviewerDbContext context) : BaseService<Review, Gu
             ? null
             : await published.AverageAsync(r => (double)r.Score, cancellationToken);
 
-        var criteria = await Context.ReviewCriterionScores
+        // Критерии обязательны в каждом отзыве, поэтому видны всегда — даже без единой оценки. По названию.
+        var scored = await Context.ReviewCriterionScores
             .Where(s => s.Review.ReviewerId == reviewerId && s.Review.Status == ReviewStatus.Published)
-            .GroupBy(s => new { s.CriterionId, s.Criterion.Title })
-            .OrderBy(g => g.Key.Title)
-            .Select(g => new CriterionRating(g.Key.CriterionId, g.Key.Title, g.Average(s => (double)s.Score), g.Count()))
-            .ToListAsync(cancellationToken);
+            .GroupBy(s => s.CriterionId)
+            .Select(g => new { CriterionId = g.Key, Average = g.Average(s => (double)s.Score), Count = g.Count() })
+            .ToDictionaryAsync(g => g.CriterionId, cancellationToken);
+        var criteria = (await Context.Criteria.OrderBy(c => c.Title).ToListAsync(cancellationToken))
+            .Select(c => scored.TryGetValue(c.Id, out var s)
+                ? new CriterionRating(c.Id, c.Title, s.Average, s.Count)
+                : new CriterionRating(c.Id, c.Title, null, 0))
+            .ToList();
 
         var countsByScore = await published
             .GroupBy(r => r.Score)
@@ -209,8 +219,8 @@ public class ReviewService(ReReviewerDbContext context) : BaseService<Review, Gu
         if (review.Score is < MinScore or > MaxScore)
             throw new ValidationException($"Score must be between {MinScore} and {MaxScore}.");
 
-        if (review.CriterionScores.Any(s => s.Score is < MinScore or > MaxScore))
-            throw new ValidationException($"Criterion score must be between {MinScore} and {MaxScore}.");
+        if (review.CriterionScores.Any(s => s.Score is < MinCriterionScore or > MaxCriterionScore))
+            throw new ValidationException($"Criterion score must be between {MinCriterionScore} and {MaxCriterionScore}.");
 
         var criterionIds = review.CriterionScores.Select(s => s.CriterionId).ToList();
         if (criterionIds.Distinct().Count() != criterionIds.Count)
@@ -218,6 +228,10 @@ public class ReviewService(ReReviewerDbContext context) : BaseService<Review, Gu
 
         if (await Context.Criteria.CountAsync(c => criterionIds.Contains(c.Id), cancellationToken) != criterionIds.Count)
             throw new KeyNotFoundException("One or more criteria not found.");
+
+        // Все критерии обязательны в каждом отзыве.
+        if (await Context.Criteria.AnyAsync(c => !criterionIds.Contains(c.Id), cancellationToken))
+            throw new ValidationException("Every criterion must be scored.");
 
         var reviewer = await Context.Reviewers
             .Where(r => r.Id == review.ReviewerId)

@@ -38,3 +38,11 @@ public class DatabaseCollection : ICollectionFixture<DatabaseFixture>
 {
     public const string Name = "Database";
 }
+
+// Своя база для тестов, которые заводят критерии: каждый критерий обязателен во всех отзывах базы,
+// и в общей базе (DatabaseCollection) он сломал бы отзывы других тестов.
+[CollectionDefinition(Name)]
+public class CriteriaDatabaseCollection : ICollectionFixture<DatabaseFixture>
+{
+    public const string Name = "CriteriaDatabase";
+}

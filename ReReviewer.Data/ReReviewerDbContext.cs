@@ -65,7 +65,7 @@ public class ReReviewerDbContext : DbContext
 
     // Каскадом удаляется только то, что принадлежит удаляемой записи:
     // отзывы пользователя, баллы отзыва и связи many-to-many (в том числе ссылки отзыва на материалы).
-    // Обзорщика, игру, жанр и критерий нельзя удалить, пока на них ссылаются отзывы, материалы
+    // Обзорщика, игру и критерий нельзя удалить, пока на них ссылаются отзывы, материалы
     // или оценки, — чтобы случайно не снести отзывы пользователей.
     #region EntitiesConfigs
 
@@ -211,12 +211,6 @@ public class ReReviewerDbContext : DbContext
             .HasMany(e => e.Games)
             .WithMany(e => e.Genres)
             .UsingEntity(j => j.ToTable("GameGenres"));
-
-        builder
-            .HasMany(e => e.Criteria)
-            .WithOne(e => e.Genre)
-            .HasForeignKey(e => e.GenreId)
-            .OnDelete(DeleteBehavior.Restrict);
     }
 
     private void GameConfiguration(EntityTypeBuilder<Game> builder)
@@ -299,7 +293,7 @@ public class ReReviewerDbContext : DbContext
         builder.HasKey(e => new { e.ReviewId, e.CriterionId });
 
         builder.ToTable(t => t.HasCheckConstraint(
-            "CK_ReviewCriterionScores_Score", "[Score] BETWEEN 1 AND 10"));
+            "CK_ReviewCriterionScores_Score", "[Score] BETWEEN 0 AND 100"));
     }
 
     // Заявка удаляется вместе с автором. Жанры заявки — отдельная связь, у жанра обратной навигации нет.

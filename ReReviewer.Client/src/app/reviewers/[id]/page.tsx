@@ -11,7 +11,7 @@ import { getReviewer, getReviewerMaterials, getReviewerRating, getReviewerReview
 import type { MaterialViewModel, PagedViewModelOfReviewViewModel, ReviewerRatingViewModel, ReviewerViewModel } from "@/lib/api/schema";
 import { getCurrentUser } from "@/lib/auth/session";
 import { avatarUrl } from "@/lib/avatar";
-import { formatDate, formatScore, materialFormatLabel, pluralize } from "@/lib/format";
+import { formatDate, formatPercent, formatScore, materialFormatLabel, pluralize } from "@/lib/format";
 import { currentOutlets, linkLabel, outletPeriod, pastOutlets } from "@/lib/reviewers";
 import { SCORE_BG, SCORE_TEXT, scoreTone } from "@/lib/score";
 
@@ -270,9 +270,9 @@ function RatingPanel({ rating }: { rating: ReviewerRatingViewModel | null }) {
             </span>
           </div>
           <Distribution scores={rating.scores} />
-          {rating.criteria.length > 0 && <Criteria criteria={rating.criteria} />}
         </>
       )}
+      {rating && <Criteria criteria={rating.criteria} />}
     </aside>
   );
 }
@@ -303,8 +303,13 @@ function Distribution({ scores }: { scores: ReviewerRatingViewModel["scores"] })
   );
 }
 
+// Критерии обязательны в каждом отзыве, поэтому API отдаёт их всегда, даже без отзывов.
+// Средний процент по каждому критерию, от лучшего; критерии без оценок — в конце, с прочерком.
+// Цвет — по той же шкале, что и оценки 1–10: 80 % и выше, от 60 до 80, ниже 60.
 function Criteria({ criteria }: { criteria: ReviewerRatingViewModel["criteria"] }) {
-  const sorted = [...criteria].sort((a, b) => b.averageScore - a.averageScore);
+  if (criteria.length === 0) return null;
+
+  const sorted = [...criteria].sort((a, b) => (b.averageScore ?? -1) - (a.averageScore ?? -1));
 
   return (
     <div className="flex flex-col gap-4">
@@ -313,18 +318,24 @@ function Criteria({ criteria }: { criteria: ReviewerRatingViewModel["criteria"] 
         <div key={criterion.criterionId} className="flex flex-col gap-1.5">
           <div className="flex justify-between gap-3">
             <span>{criterion.title}</span>
-            <span className="shrink-0 font-bold tabular-nums">
-              {formatScore(criterion.averageScore)}{" "}
-              <span className="text-sm font-medium text-muted-foreground">
-                · {criterion.scoreCount} {pluralize(criterion.scoreCount, "оценка", "оценки", "оценок")}
+            {criterion.averageScore === null ? (
+              <span className="shrink-0 text-sm text-muted-foreground">нет оценок</span>
+            ) : (
+              <span className="shrink-0 font-bold tabular-nums">
+                {formatPercent(criterion.averageScore)}{" "}
+                <span className="text-sm font-medium text-muted-foreground">
+                  · {criterion.scoreCount} {pluralize(criterion.scoreCount, "оценка", "оценки", "оценок")}
+                </span>
               </span>
-            </span>
+            )}
           </div>
           <div className="h-2 rounded-full bg-border">
-            <div
-              className={cn("h-2 rounded-full", SCORE_BG[scoreTone(criterion.averageScore)])}
-              style={{ width: `${criterion.averageScore * 10}%` }}
-            />
+            {criterion.averageScore !== null && (
+              <div
+                className={cn("h-2 rounded-full", SCORE_BG[scoreTone(criterion.averageScore / 10)])}
+                style={{ width: `${criterion.averageScore}%` }}
+              />
+            )}
           </div>
         </div>
       ))}

@@ -8478,7 +8478,7 @@ export interface components {
             criterionId: number;
             title: string;
             /** Format: double */
-            averageScore: number;
+            averageScore: null | number;
             /** Format: int32 */
             scoreCount: number;
         };
@@ -8486,9 +8486,6 @@ export interface components {
             /** Format: int32 */
             id: null | number;
             title: string;
-            /** Format: int32 */
-            genreId: null | number;
-            genreTitle: null | string;
         };
         GameViewModel: {
             /** Format: uuid */

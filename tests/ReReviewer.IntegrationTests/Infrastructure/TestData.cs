@@ -1,4 +1,5 @@
-﻿using ReReviewer.Data;
+﻿using Microsoft.EntityFrameworkCore;
+using ReReviewer.Data;
 using ReReviewer.Data.Entities;
 using ReReviewer.Data.Entities.Enums;
 
@@ -25,8 +26,21 @@ public static class TestData
     public static Task<Genre> GenreAsync(ReReviewerDbContext db) =>
         SaveAsync(db, new Genre { Title = Unique("Genre") });
 
+    // Критерий сразу становится обязательным для всех отзывов в базе. Поэтому критерии заводят только тесты
+    // из CriteriaDatabaseCollection со своей базой, и их отзывы оценивают все критерии (AllCriteriaAsync).
     public static Task<Criterion> CriterionAsync(ReReviewerDbContext db) =>
         SaveAsync(db, new Criterion { Title = Unique("Criterion") });
+
+    // Оценки по всем критериям базы: заданные явно — как есть, остальные — percent.
+    public static async Task<Dictionary<int, byte>> AllCriteriaAsync(
+        ReReviewerDbContext db, byte percent = 50, Dictionary<int, byte>? scores = null)
+    {
+        var result = await db.Criteria.ToDictionaryAsync(c => c.Id, _ => percent);
+        foreach (var (criterionId, score) in scores ?? [])
+            result[criterionId] = score;
+
+        return result;
+    }
 
     public static Task<Material> MaterialAsync(ReReviewerDbContext db, Guid reviewerId, Guid gameId) =>
         SaveAsync(db, new Material

@@ -114,17 +114,12 @@ namespace ReReviewer.Data.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<int?>("GenreId")
-                        .HasColumnType("int");
-
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(250)
                         .HasColumnType("nvarchar(250)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("GenreId");
 
                     b.ToTable("Criteria");
                 });
@@ -309,7 +304,7 @@ namespace ReReviewer.Data.Migrations
 
                     b.ToTable("ReviewCriterionScores", t =>
                         {
-                            t.HasCheckConstraint("CK_ReviewCriterionScores_Score", "[Score] BETWEEN 1 AND 10");
+                            t.HasCheckConstraint("CK_ReviewCriterionScores_Score", "[Score] BETWEEN 0 AND 100");
                         });
                 });
 
@@ -634,16 +629,6 @@ namespace ReReviewer.Data.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("ReReviewer.Data.Entities.Criterion", b =>
-                {
-                    b.HasOne("ReReviewer.Data.Entities.Genre", "Genre")
-                        .WithMany("Criteria")
-                        .HasForeignKey("GenreId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("Genre");
-                });
-
             modelBuilder.Entity("ReReviewer.Data.Entities.Material", b =>
                 {
                     b.HasOne("ReReviewer.Data.Entities.Game", "Game")
@@ -823,11 +808,6 @@ namespace ReReviewer.Data.Migrations
             modelBuilder.Entity("ReReviewer.Data.Entities.Game", b =>
                 {
                     b.Navigation("Materials");
-                });
-
-            modelBuilder.Entity("ReReviewer.Data.Entities.Genre", b =>
-                {
-                    b.Navigation("Criteria");
                 });
 
             modelBuilder.Entity("ReReviewer.Data.Entities.Outlet", b =>

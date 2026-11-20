@@ -9,7 +9,6 @@ import { failed, userApi } from "@/lib/api/client";
 import { getCriteria, getReviewer, getReviewerMaterials, isGuid } from "@/lib/api/public";
 import { getCurrentUser } from "@/lib/auth/session";
 import { createReview } from "@/lib/reviews/actions";
-import { reviewCriteria } from "@/lib/reviews/criteria";
 
 export const metadata: Metadata = {
   title: "Новый отзыв",
@@ -76,7 +75,7 @@ async function NewReview({ params }: Pick<PageProps<"/reviewers/[id]/review">, "
           key={user?.id}
           action={createReview.bind(null, id)}
           materials={materials}
-          criteria={reviewCriteria(criteria, reviewer)}
+          criteria={criteria}
           submitLabel="Отправить отзыв"
           pendingLabel="Отправляем…"
           hint="Отзыв появится на странице обзорщика после модерации."

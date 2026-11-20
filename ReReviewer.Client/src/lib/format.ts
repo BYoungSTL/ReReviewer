@@ -8,6 +8,12 @@ export const formatDate = (value: string) =>
 export const formatScore = (value: number) =>
   value.toLocaleString("ru-RU", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
+const percentFormat = new Intl.NumberFormat("ru-RU", { style: "percent", maximumFractionDigits: 0 });
+
+// Процент от 0 до 100 — как «80 %». Так показываются оценки по критериям.
+export const formatPercent = (value: number) =>
+  percentFormat.format(value / 100);
+
 const STATUS_LABELS: Record<string, string> = {
   Pending: "На модерации",
   Published: "Опубликован",

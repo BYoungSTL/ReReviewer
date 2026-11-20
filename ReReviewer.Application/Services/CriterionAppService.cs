@@ -6,7 +6,9 @@ using ReReviewer.Data.Interfaces;
 
 namespace ReReviewer.Application.Services;
 
-public class CriterionAppService(ICriterionService criterionService, IGenreService genreService) : ICriterionAppService
+// Новый критерий сразу становится обязательным для новых отзывов и правок. В уже написанных отзывах его оценки нет:
+// на странице обзорщика он будет «без оценок», пока его не оценят.
+public class CriterionAppService(ICriterionService criterionService) : ICriterionAppService
 {
     public async Task<List<CriterionViewModel>> GetCriteriaAsync()
     {
@@ -22,14 +24,7 @@ public class CriterionAppService(ICriterionService criterionService, IGenreServi
     {
         var title = InputValidation.RequiredText(criterion.Title, "Criterion title");
 
-        if (criterion.GenreId is { } genreId)
-            await genreService.GetRequiredAsync(genreId);
-
-        var saved = await criterionService.SaveAsync(criterion.Id, c =>
-        {
-            c.Title = title;
-            c.GenreId = criterion.GenreId;
-        });
+        var saved = await criterionService.SaveAsync(criterion.Id, c => c.Title = title);
 
         criterion.Id = saved.Id;
         criterion.Title = saved.Title;
@@ -45,8 +40,6 @@ public class CriterionAppService(ICriterionService criterionService, IGenreServi
         new()
         {
             Id = criterion.Id,
-            Title = criterion.Title,
-            GenreId = criterion.GenreId,
-            GenreTitle = criterion.Genre?.Title
+            Title = criterion.Title
         };
 }
