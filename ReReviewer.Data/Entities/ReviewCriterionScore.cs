@@ -4,6 +4,8 @@ public class ReviewCriterionScore
 {
     public Guid ReviewId { get; set; }
     public int CriterionId { get; set; }
+
+    // Процент от 0 до 100, который читатель поставил обзорщику по этому критерию.
     public byte Score { get; set; }
 
     #region Virtual Properties

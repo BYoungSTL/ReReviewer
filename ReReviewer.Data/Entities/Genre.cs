@@ -10,7 +10,6 @@ public class Genre : Entity<int>
 
     public virtual ICollection<Reviewer> Reviewers { get; set; } = [];
     public virtual ICollection<Game> Games { get; set; } = [];
-    public virtual ICollection<Criterion> Criteria { get; set; } = [];
 
     #endregion
 }

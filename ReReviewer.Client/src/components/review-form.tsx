@@ -1,19 +1,20 @@
 "use client";
 
 import { useActionState } from "react";
+import { PercentSlider } from "@/components/percent-slider";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import type { CriterionViewModel, MaterialViewModel } from "@/lib/api/schema";
 import { formatDate, materialFormatLabel } from "@/lib/format";
 import type { ReviewFormState, ReviewFormValues } from "@/lib/reviews/actions";
+import { CRITERION_FIELD, REQUIRED_CRITERION_FIELD } from "@/lib/reviews/criteria";
 
 const SCORES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
-// Форма нового отзыва и правки своего. Обязательны только оценка и текст:
-// без критериев и материалов отзыв говорит о работе обзорщика в целом.
+// Форма нового отзыва и правки своего. Обязательны оценка, текст и все критерии — процентом от 0 до 100.
+// Материалы — по желанию: без них отзыв говорит о работе обзорщика в целом.
 export function ReviewForm({ action, materials, criteria, initialValues, submitLabel, pendingLabel, hint }: {
   action: (state: ReviewFormState, form: FormData) => Promise<ReviewFormState>;
   materials: MaterialViewModel[];
@@ -71,28 +72,26 @@ export function ReviewForm({ action, materials, criteria, initialValues, submitL
       {criteria.length > 0 && (
         <fieldset className="flex flex-col gap-3">
           <legend className="text-sm font-medium">Оценки по критериям</legend>
-          <p className="text-sm text-muted-foreground">Необязательно: оцените только то, о чём можете судить.</p>
-          <div className="grid gap-x-8 gap-y-2 sm:grid-cols-2">
+          <p className="text-sm text-muted-foreground">
+            Оцените каждый критерий ползунком: 0 % — совсем плохо, 100 % — лучше не бывает.
+          </p>
+          <div className="grid gap-x-8 gap-y-5 sm:grid-cols-2">
             {criteria.map((criterion) => {
-              const score = values?.criterionScores[String(criterion.id)] ?? "";
+              const id = String(criterion.id);
+              const score = initialValues?.criterionScores[id];
 
-              return <div key={criterion.id} className="flex items-center justify-between gap-4">
-                <Label htmlFor={`criterion-${criterion.id}`} className="font-normal">{criterion.title}</Label>
-                {/* У select React применяет defaultValue только при создании, поэтому key: иначе после ошибки оценка сбросится. */}
-                <NativeSelect
-                  key={score}
-                  id={`criterion-${criterion.id}`}
-                  name={`criterion-${criterion.id}`}
-                  size="sm"
-                  className="shrink-0"
-                  defaultValue={score}
-                >
-                  <NativeSelectOption value="">—</NativeSelectOption>
-                  {SCORES.map((score) => (
-                    <NativeSelectOption key={score} value={score}>{score}</NativeSelectOption>
-                  ))}
-                </NativeSelect>
-              </div>;
+              return (
+                <div key={id}>
+                  <PercentSlider
+                    id={`${CRITERION_FIELD}${id}`}
+                    name={`${CRITERION_FIELD}${id}`}
+                    label={criterion.title}
+                    defaultValue={score ? Number(score) : null}
+                  />
+                  {/* По этим пометкам Server Action проверяет, что каждый критерий оценён. */}
+                  <input type="hidden" name={REQUIRED_CRITERION_FIELD} value={id} />
+                </div>
+              );
             })}
           </div>
         </fieldset>

@@ -71,29 +71,16 @@ DECLARE @bDeep       INT = (SELECT Id FROM Badges WHERE Title = N'Глубоки
 DECLARE @bNoSpoilers INT = (SELECT Id FROM Badges WHERE Title = N'Без спойлеров');
 DECLARE @bVeteran    INT = (SELECT Id FROM Badges WHERE Title = N'Ветеран индустрии');
 
--- Четыре общих критерия (GenreId = NULL) и три жанровых.
-INSERT INTO Criteria (Title, GenreId)
-SELECT v.Title, v.GenreId
-FROM (VALUES
-    (N'Объективность', NULL),
-    (N'Глубина анализа', NULL),
-    (N'Подача', NULL),
-    (N'Знание игры', NULL),
-    (N'Разбор билдов', @gRpg),
-    (N'Анализ баланса', @gStrategy),
-    (N'Атмосфера и напряжение', @gHorror)
-) AS v(Title, GenreId)
-WHERE NOT EXISTS (
-    SELECT 1 FROM Criteria c
-    WHERE c.Title = v.Title AND (c.GenreId = v.GenreId OR (c.GenreId IS NULL AND v.GenreId IS NULL)));
+-- Четыре критерия оценки. Все обязательны в каждом отзыве.
+INSERT INTO Criteria (Title)
+SELECT v.Title
+FROM (VALUES (N'Объективность'), (N'Глубина анализа'), (N'Подача'), (N'Знание игры')) AS v(Title)
+WHERE NOT EXISTS (SELECT 1 FROM Criteria c WHERE c.Title = v.Title);
 
-DECLARE @cObjectivity INT = (SELECT TOP 1 Id FROM Criteria WHERE Title = N'Объективность' AND GenreId IS NULL ORDER BY Id);
-DECLARE @cDepth       INT = (SELECT TOP 1 Id FROM Criteria WHERE Title = N'Глубина анализа' AND GenreId IS NULL ORDER BY Id);
-DECLARE @cDelivery    INT = (SELECT TOP 1 Id FROM Criteria WHERE Title = N'Подача' AND GenreId IS NULL ORDER BY Id);
-DECLARE @cKnowledge   INT = (SELECT TOP 1 Id FROM Criteria WHERE Title = N'Знание игры' AND GenreId IS NULL ORDER BY Id);
-DECLARE @cBuilds      INT = (SELECT TOP 1 Id FROM Criteria WHERE Title = N'Разбор билдов' AND GenreId = @gRpg ORDER BY Id);
-DECLARE @cBalance     INT = (SELECT TOP 1 Id FROM Criteria WHERE Title = N'Анализ баланса' AND GenreId = @gStrategy ORDER BY Id);
-DECLARE @cAtmosphere  INT = (SELECT TOP 1 Id FROM Criteria WHERE Title = N'Атмосфера и напряжение' AND GenreId = @gHorror ORDER BY Id);
+DECLARE @cObjectivity INT = (SELECT TOP 1 Id FROM Criteria WHERE Title = N'Объективность' ORDER BY Id);
+DECLARE @cDepth       INT = (SELECT TOP 1 Id FROM Criteria WHERE Title = N'Глубина анализа' ORDER BY Id);
+DECLARE @cDelivery    INT = (SELECT TOP 1 Id FROM Criteria WHERE Title = N'Подача' ORDER BY Id);
+DECLARE @cKnowledge   INT = (SELECT TOP 1 Id FROM Criteria WHERE Title = N'Знание игры' ORDER BY Id);
 
 -----------------------------------------------------------------------------------------------
 -- Пользователи
@@ -308,18 +295,21 @@ INSERT INTO ReviewMaterials (ReviewsId, MaterialsId) VALUES
     (@v11, @m14),
     (@v13, @m10);
 
+-- Оценка по критерию — процент от 0 до 100. Все четыре критерия обязательны в каждом отзыве.
 INSERT INTO ReviewCriterionScores (ReviewId, CriterionId, Score) VALUES
-    (@v01, @cObjectivity, 9), (@v01, @cDepth, 10), (@v01, @cBuilds, 9),
-    (@v02, @cObjectivity, 7), (@v02, @cDelivery, 8),
-    (@v03, @cObjectivity, 3),
-    (@v05, @cObjectivity, 5), (@v05, @cKnowledge, 7),
-    (@v06, @cDepth, 10), (@v06, @cBalance, 10), (@v06, @cDelivery, 9),
-    (@v07, @cObjectivity, 8),
-    (@v08, @cAtmosphere, 10), (@v08, @cDelivery, 9),
-    (@v09, @cDepth, 8),
-    (@v10, @cDelivery, 9), (@v10, @cKnowledge, 8),
-    (@v11, @cBalance, 6), (@v11, @cObjectivity, 7),
-    (@v13, @cKnowledge, 8), (@v13, @cObjectivity, 6);
+    (@v01, @cObjectivity, 90), (@v01, @cDepth, 100), (@v01, @cDelivery, 85), (@v01, @cKnowledge, 90),
+    (@v02, @cObjectivity, 70), (@v02, @cDepth, 65),  (@v02, @cDelivery, 80), (@v02, @cKnowledge, 75),
+    (@v03, @cObjectivity, 30), (@v03, @cDepth, 50),  (@v03, @cDelivery, 55), (@v03, @cKnowledge, 60),
+    (@v04, @cObjectivity, 10), (@v04, @cDepth, 10),  (@v04, @cDelivery, 10), (@v04, @cKnowledge, 10),
+    (@v05, @cObjectivity, 50), (@v05, @cDepth, 70),  (@v05, @cDelivery, 60), (@v05, @cKnowledge, 70),
+    (@v06, @cObjectivity, 95), (@v06, @cDepth, 100), (@v06, @cDelivery, 90), (@v06, @cKnowledge, 100),
+    (@v07, @cObjectivity, 80), (@v07, @cDepth, 80),  (@v07, @cDelivery, 60), (@v07, @cKnowledge, 80),
+    (@v08, @cObjectivity, 85), (@v08, @cDepth, 85),  (@v08, @cDelivery, 90), (@v08, @cKnowledge, 90),
+    (@v09, @cObjectivity, 80), (@v09, @cDepth, 80),  (@v09, @cDelivery, 85), (@v09, @cKnowledge, 80),
+    (@v10, @cObjectivity, 75), (@v10, @cDepth, 70),  (@v10, @cDelivery, 90), (@v10, @cKnowledge, 80),
+    (@v11, @cObjectivity, 70), (@v11, @cDepth, 75),  (@v11, @cDelivery, 60), (@v11, @cKnowledge, 65),
+    (@v12, @cObjectivity, 70), (@v12, @cDepth, 40),  (@v12, @cDelivery, 80), (@v12, @cKnowledge, 60),
+    (@v13, @cObjectivity, 60), (@v13, @cDepth, 70),  (@v13, @cDelivery, 75), (@v13, @cKnowledge, 80);
 
 COMMIT TRANSACTION;
 

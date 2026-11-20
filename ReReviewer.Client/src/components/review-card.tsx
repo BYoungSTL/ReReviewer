@@ -5,7 +5,7 @@ import { ScoreBadge } from "@/components/score-badge";
 import { buttonVariants } from "@/components/ui/button";
 import type { ReviewViewModel } from "@/lib/api/schema";
 import { avatarUrl } from "@/lib/avatar";
-import { formatDate, reviewStatusLabel } from "@/lib/format";
+import { formatDate, formatPercent, reviewStatusLabel } from "@/lib/format";
 import { SCORE_TEXT, scoreTone } from "@/lib/score";
 
 // Отзыв пользователя об обзорщике. На странице обзорщика ссылка на него не нужна (showReviewer = false),
@@ -54,7 +54,7 @@ export function ReviewCard({ review, showReviewer = false, own = false, meta, ch
         <ul className="flex flex-wrap gap-2 text-sm">
           {review.criterionScores.map((score) => (
             <li key={score.criterionId} className="rounded-full bg-secondary px-2.5 py-0.5 text-secondary-foreground/80">
-              {score.criterionTitle} <b className={SCORE_TEXT[scoreTone(score.score)]}>{score.score}</b>
+              {score.criterionTitle} <b className={SCORE_TEXT[scoreTone(score.score / 10)]}>{formatPercent(score.score)}</b>
             </li>
           ))}
         </ul>

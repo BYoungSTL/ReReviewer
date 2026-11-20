@@ -17,10 +17,13 @@ public class ScoreCountViewModel
     public int Count { get; set; }
 }
 
+// Критерии обязательны в каждом отзыве, поэтому в рейтинге есть все, даже без оценок.
 public class CriterionRatingViewModel
 {
     public int CriterionId { get; set; }
     public string Title { get; set; } = string.Empty;
-    public double AverageScore { get; set; }
+
+    // Средний процент (0–100) по опубликованным отзывам; null — оценок по критерию ещё нет.
+    public double? AverageScore { get; set; }
     public int ScoreCount { get; set; }
 }

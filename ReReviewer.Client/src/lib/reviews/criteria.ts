@@ -1,17 +1,5 @@
-import type { CriterionViewModel, ReviewCriterionScoreViewModel, ReviewerViewModel } from "@/lib/api/schema";
-
-// Критерий без жанра подходит любому обзорщику, с жанром — только тем, кто в этом жанре работает.
-// Критерии, по которым в отзыве уже стоит оценка, остаются всегда: обзорщик мог сменить жанры,
-// а без поля в форме правка удалила бы такую оценку.
-export function reviewCriteria(
-  criteria: CriterionViewModel[],
-  reviewer: ReviewerViewModel,
-  scores: ReviewCriterionScoreViewModel[] = [],
-) {
-  const genreIds = reviewer.genres.map((genre) => genre.id);
-
-  return criteria.filter((criterion) =>
-    criterion.genreId === null
-    || genreIds.includes(criterion.genreId)
-    || scores.some((score) => score.criterionId === criterion.id));
-}
+// Поля формы отзыва: оценка критерия — criterion-<Id> (процент от 0 до 100), пометка критерия — requiredCriterion.
+// Все критерии обязательны: по пометкам Server Action проверяет, что каждый оценён (ползунок, который не трогали,
+// ничего не отправляет). Отдельным модулем, а не в lib/reviews/actions.ts: из файла с "use server" константы не экспортировать.
+export const CRITERION_FIELD = "criterion-";
+export const REQUIRED_CRITERION_FIELD = "requiredCriterion";

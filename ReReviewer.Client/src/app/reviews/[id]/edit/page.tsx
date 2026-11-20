@@ -7,7 +7,6 @@ import { failed, userApi } from "@/lib/api/client";
 import { getCriteria, getReviewer, getReviewerMaterials } from "@/lib/api/public";
 import type { ReviewViewModel } from "@/lib/api/schema";
 import { updateReview, type ReviewFormValues } from "@/lib/reviews/actions";
-import { reviewCriteria } from "@/lib/reviews/criteria";
 
 export const metadata: Metadata = {
   title: "Изменить отзыв",
@@ -56,7 +55,7 @@ async function EditReview({ params }: Pick<PageProps<"/reviews/[id]/edit">, "par
         key={review.updatedAt ?? review.createdAt}
         action={updateReview.bind(null, id)}
         materials={materials}
-        criteria={reviewCriteria(criteria, reviewer, review.criterionScores)}
+        criteria={criteria}
         initialValues={formValues(review)}
         submitLabel="Сохранить изменения"
         pendingLabel="Сохраняем…"

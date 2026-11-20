@@ -6,8 +6,10 @@ import { userApi } from "@/lib/api/client";
 import { API_UNAVAILABLE, problemMessage } from "@/lib/api/errors";
 import { reviewerTag, userTag } from "@/lib/api/public";
 import type { ReviewViewModel } from "@/lib/api/schema";
+import { CRITERION_FIELD, REQUIRED_CRITERION_FIELD } from "./criteria";
 
 // Значения формы возвращаются при ошибке: после Server Action React сбрасывает поля к значениям по умолчанию.
+// criterionScores: Id критерия → процент от 0 до 100 строкой.
 export type ReviewFormValues = {
   text: string;
   score: number | null;
@@ -20,12 +22,15 @@ export type ReviewFormState = {
   values: ReviewFormValues;
 } | undefined;
 
-const CRITERION_FIELD = "criterion-";
 const EMPTY_GUID = "00000000-0000-0000-0000-000000000000";
+const CRITERIA_MISSING = "Оцените каждый критерий.";
 
 // Новый отзыв о своём профиле форма не показывает, а эту ошибку владелец встретит, правя отзыв, написанный до привязки.
+// Оценку каждого критерия проверяет и форма, но набор критериев мог измениться, пока страница была открыта.
 const KNOWN_ERRORS: Record<string, string> = {
   "You cannot review your own reviewer profile.": "Это ваш профиль обзорщика: оценивать самого себя нельзя, поэтому отзыв о нём не изменить.",
+  "Every criterion must be scored.": CRITERIA_MISSING,
+  "Criterion score must be between 0 and 100.": "Оценка по критерию — от 0 до 100 %.",
 };
 
 export async function createReview(reviewerId: string, _state: ReviewFormState, form: FormData): Promise<ReviewFormState> {
@@ -63,6 +68,9 @@ async function saveReview(
 
   if (!values.text) return failure("Напишите текст отзыва.");
   if (values.score === null) return failure("Поставьте общую оценку от 1 до 10.");
+  // Критерии форма помечает скрытыми полями; оценку ставит ползунок, пока его не тронули — её нет.
+  if (form.getAll(REQUIRED_CRITERION_FIELD).some((id) => !(String(id) in values.criterionScores)))
+    return failure(CRITERIA_MISSING);
 
   // Модель запроса общая с ответом (см. README), поэтому здесь есть и поля, которые API при сохранении игнорирует:
   // автора он берёт из токена, а имена, статус и даты заполняет сам. При правке он не меняет и обзорщика.
