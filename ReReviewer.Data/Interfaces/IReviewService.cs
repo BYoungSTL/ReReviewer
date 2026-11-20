@@ -14,6 +14,8 @@ public interface IReviewService : IBaseService<Review, Guid>
 
     public Task<IReadOnlyList<Review>> GetPublishedByReviewerAsync(Guid reviewerId, int skip = 0, int take = 20, CancellationToken cancellationToken = default);
     public Task<int> CountPublishedByReviewerAsync(Guid reviewerId, CancellationToken cancellationToken = default);
+    public Task<IReadOnlyList<Review>> GetPublishedByUserAsync(Guid userId, int skip = 0, int take = 20, CancellationToken cancellationToken = default);
+    public Task<int> CountPublishedByUserAsync(Guid userId, CancellationToken cancellationToken = default);
     public Task<IReadOnlyList<Review>> GetPendingAsync(int skip = 0, int take = 20, CancellationToken cancellationToken = default);
     public Task<int> CountPendingAsync(CancellationToken cancellationToken = default);
     public Task<IReadOnlyList<Review>> GetByUserAsync(Guid userId, CancellationToken cancellationToken = default);

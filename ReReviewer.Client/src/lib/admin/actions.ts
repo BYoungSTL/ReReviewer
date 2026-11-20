@@ -4,7 +4,7 @@ import { refresh, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { userApi } from "@/lib/api/client";
 import { API_UNAVAILABLE, problemMessage } from "@/lib/api/errors";
-import { REVIEWS_TAG, reviewerTag } from "@/lib/api/public";
+import { REVIEWS_TAG, reviewerTag, userTag } from "@/lib/api/public";
 
 // Действия раздела модерации. Права проверяет API: без нужной роли он ответит 403, что бы ни пришло из браузера.
 
@@ -15,6 +15,7 @@ type ApiResult = { error?: unknown; response: Response };
 export async function moderateReview(
   reviewId: string,
   reviewerId: string,
+  userId: string,
   _state: AdminActionState,
   form: FormData,
 ): Promise<AdminActionState> {
@@ -27,15 +28,24 @@ export async function moderateReview(
       ? await api.POST("/api/reviews/{id}/approve", params)
       : await api.POST("/api/reviews/{id}/reject", params);
 
-    // Одобренный отзыв появляется на странице обзорщика и меняет его рейтинг. Отклонённый там и не был виден.
-    if (approve && result.response.ok) updateTag(reviewerTag(reviewerId));
+    // Одобренный отзыв появляется на страницах обзорщика и автора и меняет рейтинг. Отклонённый там и не был виден.
+    if (approve && result.response.ok) {
+      updateTag(reviewerTag(reviewerId));
+      updateTag(userTag(userId));
+    }
 
     return result;
   });
 }
 
 // Одобренная заявка создаёт обзорщика, и он сразу появляется в списке на главной.
-export async function moderateSuggestion(suggestionId: string, _state: AdminActionState, form: FormData): Promise<AdminActionState> {
+// selfUserId — автор заявки «это я»: профиль привяжется к его аккаунту, и это видно на его странице.
+export async function moderateSuggestion(
+  suggestionId: string,
+  selfUserId: string | null,
+  _state: AdminActionState,
+  form: FormData,
+): Promise<AdminActionState> {
   const approve = form.get("decision") === "approve";
 
   return run("/admin/reviewers", "Не удалось сохранить решение.", async () => {
@@ -45,16 +55,20 @@ export async function moderateSuggestion(suggestionId: string, _state: AdminActi
       ? await api.POST("/api/suggestions/{id}/approve", params)
       : await api.POST("/api/suggestions/{id}/reject", params);
 
-    if (approve && result.response.ok) updateTag("reviewers");
+    if (approve && result.response.ok) {
+      updateTag("reviewers");
+      if (selfUserId) updateTag(userTag(selfUserId));
+    }
 
     return result;
   });
 }
 
-// После одобрения профиль отмечается как подтверждённый: сбрасывается его кэш.
+// После одобрения профиль отмечается как подтверждённый, а у автора запроса появляется ссылка на профиль: сбрасываются оба кэша.
 export async function moderateClaim(
   claimId: string,
   reviewerId: string,
+  userId: string,
   _state: AdminActionState,
   form: FormData,
 ): Promise<AdminActionState> {
@@ -71,6 +85,7 @@ export async function moderateClaim(
     if (approve && result.response.ok) {
       updateTag(reviewerTag(reviewerId));
       updateTag("reviewers");
+      updateTag(userTag(userId));
     }
 
     return result;
@@ -78,7 +93,13 @@ export async function moderateClaim(
 }
 
 // Одна форма на пользователя, действие выбирает нажатая кнопка (intent).
-export async function moderateUser(userId: string, _state: AdminActionState, form: FormData): Promise<AdminActionState> {
+// reviewerId — привязанный профиль: после удаления пользователя в его шапке больше нет аккаунта.
+export async function moderateUser(
+  userId: string,
+  reviewerId: string | null,
+  _state: AdminActionState,
+  form: FormData,
+): Promise<AdminActionState> {
   const intent = form.get("intent");
   if (intent !== "roles" && intent !== "block" && intent !== "unblock" && intent !== "delete")
     return { error: "Неизвестное действие." };
@@ -101,7 +122,11 @@ export async function moderateUser(userId: string, _state: AdminActionState, for
       case "delete": {
         const result = await api.DELETE("/api/users/{id}", params);
         // Вместе с пользователем удалены его отзывы, а у каких они обзорщиков, здесь неизвестно: сбрасываются все.
-        if (result.response.ok) updateTag(REVIEWS_TAG);
+        if (result.response.ok) {
+          updateTag(REVIEWS_TAG);
+          updateTag(userTag(userId));
+          if (reviewerId) updateTag(reviewerTag(reviewerId));
+        }
 
         return result;
       }

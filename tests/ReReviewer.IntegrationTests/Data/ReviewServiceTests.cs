@@ -41,6 +41,34 @@ public class ReviewServiceTests(DatabaseFixture database)
     }
 
     [Fact]
+    public async Task CreateAsync_OwnReviewerProfile_ThrowsValidation()
+    {
+        await using var db = database.CreateContext();
+        var user = await TestData.UserAsync(db);
+        var reviewer = await TestData.ReviewerAsync(db, user.Id);
+
+        var exception = await Should.ThrowAsync<ValidationException>(
+            () => new ReviewService(db).CreateAsync(user.Id, reviewer.Id, new ReviewInput("I am the best", 10, [], new Dictionary<int, byte>())));
+
+        exception.Message.ShouldBe("You cannot review your own reviewer profile.");
+    }
+
+    [Fact]
+    public async Task EditAsync_AfterProfileLinkedToAuthor_ThrowsValidation()
+    {
+        var s = await ArrangeAsync();
+        var reviewId = await CreateAsync(s, [], new());
+        await using (var db = database.CreateContext())
+            await db.Reviewers.Where(r => r.Id == s.ReviewerId).ExecuteUpdateAsync(r => r.SetProperty(x => x.UserId, s.UserId));
+
+        await using var edit = database.CreateContext();
+        var exception = await Should.ThrowAsync<ValidationException>(
+            () => new ReviewService(edit).EditAsync(reviewId, s.UserId, new ReviewInput("Now about myself", 10, [], new Dictionary<int, byte>())));
+
+        exception.Message.ShouldBe("You cannot review your own reviewer profile.");
+    }
+
+    [Fact]
     public async Task CreateAsync_MaterialOfAnotherReviewer_ThrowsValidation()
     {
         var s = await ArrangeAsync();
@@ -92,6 +120,22 @@ public class ReviewServiceTests(DatabaseFixture database)
         review.UpdatedAt.ShouldNotBeNull();
         review.Materials.Select(m => m.Id).ShouldBe([s.Material2]);
         review.CriterionScores.Select(c => (c.CriterionId, c.Score)).ShouldBe([(s.Criterion1, (byte)3)]);
+    }
+
+    // datetime2 не хранит часовой пояс: без UtcDateTimeConverter EF вернул бы даты с DateTimeKind.Unspecified.
+    [Fact]
+    public async Task Dates_AreReadAsUtc()
+    {
+        var s = await ArrangeAsync();
+        var reviewId = await CreateAsync(s, [], new());
+        await using (var db = database.CreateContext())
+            await new ReviewService(db).EditAsync(reviewId, s.UserId, new ReviewInput("Changed", 4, [], new Dictionary<int, byte>()));
+
+        await using var check = database.CreateContext();
+        var review = await check.Reviews.SingleAsync(r => r.Id == reviewId);
+
+        review.CreatedAt.Kind.ShouldBe(DateTimeKind.Utc);
+        review.UpdatedAt.ShouldNotBeNull().Kind.ShouldBe(DateTimeKind.Utc);
     }
 
     [Fact]

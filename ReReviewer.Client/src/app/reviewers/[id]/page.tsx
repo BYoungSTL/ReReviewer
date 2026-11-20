@@ -5,14 +5,15 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { Avatar } from "@/components/avatar";
+import { ReviewsList } from "@/components/reviews-list";
 import { buttonVariants } from "@/components/ui/button";
-import { getReviewer, getReviewerMaterials, getReviewerRating, getReviewerReviews, isGuid } from "@/lib/api/public";
-import type { MaterialViewModel, ReviewerRatingViewModel, ReviewerViewModel } from "@/lib/api/schema";
+import { getPublicUser, getReviewer, getReviewerMaterials, getReviewerRating, getReviewerReviews, isGuid } from "@/lib/api/public";
+import type { MaterialViewModel, PublicUserViewModel, ReviewerRatingViewModel, ReviewerViewModel } from "@/lib/api/schema";
 import { getCurrentUser } from "@/lib/auth/session";
+import { avatarUrl } from "@/lib/avatar";
 import { formatDate, formatScore, materialFormatLabel, pluralize } from "@/lib/format";
 import { currentOutlets, linkLabel, outletPeriod, pastOutlets } from "@/lib/reviewers";
 import { SCORE_BG, SCORE_TEXT, scoreTone } from "@/lib/score";
-import { ReviewsList } from "./reviews-list";
 
 const FORMAT_ICONS: Record<string, LucideIcon> = {
   Video,
@@ -64,6 +65,8 @@ async function ReviewerProfile({ params }: Pick<PageProps<"/reviewers/[id]">, "p
   // Владелец подтверждённого профиля видит «Редактировать профиль» вместо «Написать отзыв». Это только интерфейс:
   // какой профиль менять, API определяет по токену.
   const isOwner = user !== null && reviewer.userId === user.id;
+  // Аккаунт, к которому модератор привязал профиль: читатели видят, кто стоит за профилем.
+  const owner = reviewer.userId ? await getPublicUser(reviewer.userId) : null;
 
   return (
     <div className="flex flex-col gap-7">
@@ -72,7 +75,7 @@ async function ReviewerProfile({ params }: Pick<PageProps<"/reviewers/[id]">, "p
         Все обзорщики
       </Link>
 
-      <ProfileHeader id={id} reviewer={reviewer} isOwner={isOwner} />
+      <ProfileHeader id={id} reviewer={reviewer} owner={owner} isOwner={isOwner} />
 
       <div className="flex flex-wrap items-start gap-6">
         <RatingPanel rating={rating} />
@@ -84,7 +87,7 @@ async function ReviewerProfile({ params }: Pick<PageProps<"/reviewers/[id]">, "p
             <h2 className="font-display text-xl font-bold">
               Отзывы <span className="font-medium text-muted-foreground">{reviews.totalCount}</span>
             </h2>
-            <ReviewsList reviewerId={id} firstPage={reviews} />
+            <ReviewsList source={{ kind: "reviewer", id }} firstPage={reviews} />
           </section>
         </div>
       </div>
@@ -92,7 +95,12 @@ async function ReviewerProfile({ params }: Pick<PageProps<"/reviewers/[id]">, "p
   );
 }
 
-function ProfileHeader({ id, reviewer, isOwner }: { id: string; reviewer: ReviewerViewModel; isOwner: boolean }) {
+function ProfileHeader({ id, reviewer, owner, isOwner }: {
+  id: string;
+  reviewer: ReviewerViewModel;
+  owner: PublicUserViewModel | null;
+  isOwner: boolean;
+}) {
   const current = currentOutlets(reviewer);
   const past = pastOutlets(reviewer);
 
@@ -128,11 +136,24 @@ function ProfileHeader({ id, reviewer, isOwner }: { id: string; reviewer: Review
                 ))}
               </ul>
             )}
-            {/* Привязанный профиль подтверждён модератором (запрос «это я»), к остальным можно отправить такой запрос. */}
+            {/* Привязанный профиль подтверждён модератором (запрос «это я»), к остальным можно отправить такой запрос.
+                Рядом — аккаунт владельца со ссылкой на его страницу. */}
             {reviewer.userId ? (
-              <p className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary">
-                <BadgeCheck aria-hidden="true" className="size-4" />
-                Профиль подтверждён автором
+              <p className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm">
+                <span className="inline-flex items-center gap-1.5 font-semibold text-primary">
+                  <BadgeCheck aria-hidden="true" className="size-4" />
+                  Профиль подтверждён автором
+                </span>
+                {/* На телефоне аккаунт — отдельной строкой: иначе перенос начинал бы её с разделителя. */}
+                {owner && (
+                  <span className="inline-flex basis-full items-center gap-1.5 sm:basis-auto">
+                    <span className="text-muted-foreground"><span aria-hidden="true" className="hidden sm:inline">· </span>аккаунт</span>
+                    <Link href={`/users/${owner.id}`} className="inline-flex items-center gap-1.5 font-semibold hover:underline">
+                      <Avatar id={owner.id} name={owner.name} src={avatarUrl(owner.id, owner.avatarUpdatedAt)} size="xs" className="size-5 text-[9px]" />
+                      {owner.name}
+                    </Link>
+                  </span>
+                )}
               </p>
             ) : (
               <Link href={`/reviewers/${id}/claim`} className="self-start text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">

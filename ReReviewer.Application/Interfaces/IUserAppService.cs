@@ -6,6 +6,7 @@ public interface IUserAppService
 {
     public Task<List<UserViewModel>> GetUsersAsync();
     public Task<UserViewModel> GetUserAsync(Guid userId);
+    public Task<PublicUserViewModel> GetPublicUserAsync(Guid userId);
     public Task<bool> SaveUserAsync(UserViewModel user);
     public Task DeleteUserAsync(Guid userId);
 

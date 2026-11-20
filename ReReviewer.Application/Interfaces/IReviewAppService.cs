@@ -10,6 +10,7 @@ public interface IReviewAppService
 
     public Task<PagedViewModel<ReviewViewModel>> GetReviewerReviewsAsync(Guid reviewerId, int page = 1, int pageSize = 20);
     public Task<ReviewerRatingViewModel> GetReviewerRatingAsync(Guid reviewerId);
+    public Task<PagedViewModel<ReviewViewModel>> GetPublishedUserReviewsAsync(Guid userId, int page = 1, int pageSize = 20);
     public Task DeleteReviewAsync(Guid reviewId, Guid userId);
 
     public Task<PagedViewModel<ReviewViewModel>> GetModerationQueueAsync(int page = 1, int pageSize = 20);

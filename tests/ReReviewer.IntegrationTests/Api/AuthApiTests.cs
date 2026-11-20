@@ -27,6 +27,17 @@ public class AuthApiTests(ApiFixture api)
         me.GetProperty("email").GetString().ShouldBe(email);
     }
 
+    // Дата без «Z» в браузере читается как местное время, и у читателя в другом часовом поясе сдвигается.
+    [Fact]
+    public async Task Me_ReturnsDatesFromDatabaseInUtc()
+    {
+        using var client = api.CreateClient(ApiFixture.User);
+
+        var me = await client.GetFromJsonAsync<JsonElement>("api/auth/me");
+
+        me.GetProperty("createdAt").GetString().ShouldEndWith("Z");
+    }
+
     [Fact]
     public async Task Register_ResponseDoesNotContainPassword()
     {

@@ -97,7 +97,7 @@ function UserCard({ user, roles, isSelf }: { user: UserViewModel; roles: RoleVie
         {!isSelf && user.id && (
           <UserModeration
             key={`${roleIds.join(",")}|${user.blockedAt ?? ""}`}
-            action={moderateUser.bind(null, user.id)}
+            action={moderateUser.bind(null, user.id, user.reviewerId)}
             roles={roles}
             userRoleIds={roleIds}
             blocked={!!user.blockedAt}

@@ -63,9 +63,21 @@ async function signIn(email: string, password: string): Promise<string | undefin
 const field = (form: FormData, name: string) =>
   String(form.get(name) ?? "").trim();
 
+// Условный адрес сайта: с ним путь разбирается так же, как его разберёт браузер.
+const SITE_ORIGIN = "http://rereviewer.invalid";
+
 // Только путь этого сайта: иначе ссылка /login?returnTo=https://evil.example уводила бы после входа на чужой сайт.
+// Сравнивать строку с «//» мало: браузер выбрасывает из адреса табуляцию и переводы строк и читает «\» как «/»,
+// поэтому «/\t/evil.example» тоже ведёт на чужой сайт. Путь разбирается целиком, и дальше идёт уже разобранный.
 function returnPath(form: FormData) {
   const path = field(form, "returnTo");
+  if (!path.startsWith("/")) return "/";
 
-  return path.startsWith("/") && !path.startsWith("//") && !path.startsWith("/\\") ? path : "/";
+  try {
+    const url = new URL(path, SITE_ORIGIN);
+
+    return url.origin === SITE_ORIGIN ? `${url.pathname}${url.search}${url.hash}` : "/";
+  } catch {
+    return "/";
+  }
 }

@@ -66,7 +66,7 @@ async function Queue({ searchParams }: Pick<PageProps<"/admin/reviewers">, "sear
           {suggestion.note
             ? <p className="break-words whitespace-pre-line text-foreground/90">{suggestion.note}</p>
             : <p className="text-sm text-muted-foreground">Автор не написал, где обзорщик публикуется.</p>}
-          <DecisionForm action={moderateSuggestion.bind(null, suggestion.id ?? "")} />
+          <DecisionForm action={moderateSuggestion.bind(null, suggestion.id ?? "", suggestion.isSelf ? suggestion.userId : null)} />
         </article>
       ))}
       <Pager basePath="/admin/reviewers" page={queue.page} totalPages={queue.totalPages} />

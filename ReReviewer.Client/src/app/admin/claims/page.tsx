@@ -58,7 +58,7 @@ async function Queue({ searchParams }: Pick<PageProps<"/admin/claims">, "searchP
             <span className="text-sm font-semibold text-secondary-foreground/80">Как проверить</span>
             <p className="break-words whitespace-pre-line text-foreground/90">{claim.note}</p>
           </div>
-          <DecisionForm action={moderateClaim.bind(null, claim.id ?? "", claim.reviewerId)} />
+          <DecisionForm action={moderateClaim.bind(null, claim.id ?? "", claim.reviewerId, claim.userId)} />
         </article>
       ))}
       <Pager basePath="/admin/claims" page={queue.page} totalPages={queue.totalPages} />

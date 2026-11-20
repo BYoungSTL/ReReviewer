@@ -1,36 +1,33 @@
 import type { NextRequest } from "next/server";
 import { API_URL } from "@/lib/api/client";
-import { getToken } from "@/lib/auth/session";
+import { isGuid } from "@/lib/api/public";
 
-// BFF-прокси для клиентских компонентов (lib/api/browser.ts): /api/* этого сайта → /api/* ReReviewer API
-// с токеном из httpOnly-cookie. Токен остаётся на сервере, а браузеру не нужен CORS — запросы идут на тот же сайт.
-// Вход и регистрация закрыты: их ответ с токеном не должен попасть в браузер (см. lib/auth/actions.ts).
-const BLOCKED = new Set(["auth/login", "auth/register"]);
+// BFF-прокси для браузера: /api/* этого сайта → /api/* ReReviewer API, без CORS — запросы идут на тот же сайт.
+// Пропускает только чтение публичных данных, которые браузер загружает сам: следующие страницы отзывов
+// (components/reviews-list.tsx) и аватарки (lib/avatar.ts). Токен из cookie прокси не добавляет.
+// Всё, что меняет данные или читает данные вошедшего, идёт через Server Actions и серверные компоненты.
+// Иначе XSS мог бы действовать от имени пользователя, а то и унести токен: PUT api/users/me и другие правки
+// своего профиля отвечают новым токеном.
 const PASSED_HEADERS = ["content-type", "cache-control", "x-content-type-options", "content-security-policy"];
 
-async function forward(request: NextRequest, { params }: RouteContext<"/api/[...path]">) {
+// reviewers/{id}/reviews, users/{id}/reviews и users/{id}/avatar.
+const ALLOWED: Record<string, string[]> = {
+  reviewers: ["reviews"],
+  users: ["reviews", "avatar"],
+};
+
+export async function GET(request: NextRequest, { params }: RouteContext<"/api/[...path]">) {
   const { path } = await params;
-  const unsafe = path.some((segment) => segment === "." || segment === ".." || segment.includes("/"));
-  if (unsafe || BLOCKED.has(path.join("/").toLowerCase()))
+  const [resource, id, action, ...rest] = path;
+  if (rest.length > 0 || !isGuid(id ?? "") || !Object.hasOwn(ALLOWED, resource) || !ALLOWED[resource].includes(action))
     return Response.json({ title: "Not Found", status: 404 }, { status: 404 });
 
-  const headers = new Headers({ accept: "application/json" });
-  const contentType = request.headers.get("content-type");
-  if (contentType) headers.set("content-type", contentType);
-
-  const token = await getToken();
-  if (token) headers.set("authorization", `Bearer ${token}`);
-
-  const target = new URL(`/api/${path.map(encodeURIComponent).join("/")}${request.nextUrl.search}`, API_URL);
-  const hasBody = request.method !== "GET" && request.method !== "HEAD";
+  // Сегменты проверены выше: в них только буквы, цифры и дефисы, кодировать нечего.
+  const target = new URL(`/api/${resource}/${id}/${action}${request.nextUrl.search}`, API_URL);
 
   let response: Response;
   try {
-    response = await fetch(target, {
-      method: request.method,
-      headers,
-      body: hasBody ? await request.arrayBuffer() : undefined,
-    });
+    response = await fetch(target, { headers: { accept: "application/json" } });
   } catch {
     return Response.json({ title: "Bad Gateway", status: 502, detail: "ReReviewer API is unavailable." }, { status: 502 });
   }
@@ -45,5 +42,3 @@ async function forward(request: NextRequest, { params }: RouteContext<"/api/[...
 
   return new Response(response.body, { status: response.status, headers: responseHeaders });
 }
-
-export { forward as GET, forward as POST, forward as PUT, forward as DELETE };

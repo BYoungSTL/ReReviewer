@@ -23,6 +23,10 @@ public class UserAppService(IUserService userService, IRoleService roleService) 
     public async Task<UserViewModel> GetUserAsync(Guid userId) =>
         ToViewModel(await userService.GetRequiredAsync(userId));
 
+    // Видна всем, в том числе у заблокированного: его опубликованные отзывы тоже остаются на сайте.
+    public async Task<PublicUserViewModel> GetPublicUserAsync(Guid userId) =>
+        ToPublicViewModel(await userService.GetRequiredAsync(userId));
+
     // Без Id создаёт пользователя (пароль обязателен), с Id — правит имя, почту и, если передан, пароль.
     // Роли здесь не меняются — для этого SetUserRolesAsync.
     public async Task<bool> SaveUserAsync(UserViewModel user)
@@ -187,5 +191,15 @@ public class UserAppService(IUserService userService, IRoleService roleService) 
             CreatedAt = user.CreatedAt,
             BlockedAt = user.BlockedAt,
             AvatarUpdatedAt = user.AvatarUpdatedAt
+        };
+
+    private static PublicUserViewModel ToPublicViewModel(User user) =>
+        new()
+        {
+            Id = user.Id,
+            Name = user.Name,
+            AvatarUpdatedAt = user.AvatarUpdatedAt,
+            ReviewerId = user.Reviewer?.Id,
+            CreatedAt = user.CreatedAt
         };
 }

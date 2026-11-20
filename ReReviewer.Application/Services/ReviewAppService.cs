@@ -65,6 +65,17 @@ public class ReviewAppService(IReviewService reviewService) : IReviewAppService
         return ToPage(reviews, page, pageSize, totalCount);
     }
 
+    // Публичная страница пользователя: только опубликованные отзывы, новые сверху.
+    public async Task<PagedViewModel<ReviewViewModel>> GetPublishedUserReviewsAsync(Guid userId, int page = 1, int pageSize = 20)
+    {
+        (page, pageSize) = NormalizePage(page, pageSize);
+
+        var reviews = await reviewService.GetPublishedByUserAsync(userId, (page - 1) * pageSize, pageSize);
+        var totalCount = await reviewService.CountPublishedByUserAsync(userId);
+
+        return ToPage(reviews, page, pageSize, totalCount);
+    }
+
     public async Task<ReviewerRatingViewModel> GetReviewerRatingAsync(Guid reviewerId)
     {
         var rating = await reviewService.GetReviewerRatingAsync(reviewerId);

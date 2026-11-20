@@ -9,10 +9,30 @@ namespace ReReviewer.Controllers;
 
 // Управление пользователями — только администратор. Свой профиль любой вошедший пользователь
 // меняет через api/users/me, смотрит — через GET api/auth/me. Регистрация — в api/auth/register.
+// Публичная страница пользователя (профиль, аватарка, опубликованные отзывы) открыта всем.
 [Authorize]
-public class UsersController(IUserAppService userAppService, IReviewerAppService reviewerAppService, IJwtTokenService tokenService)
-    : BaseController
+public class UsersController(
+    IUserAppService userAppService,
+    IReviewerAppService reviewerAppService,
+    IReviewAppService reviewAppService,
+    IJwtTokenService tokenService) : BaseController
 {
+    #region Public page
+
+    // Имя, аватарка и подтверждённый профиль обзорщика. Почты и ролей здесь нет.
+    [AllowAnonymous]
+    [HttpGet("{id:guid}/profile")]
+    public async Task<ActionResult<PublicUserViewModel>> GetProfile(Guid id) =>
+        await userAppService.GetPublicUserAsync(id);
+
+    // Только опубликованные отзывы, новые сверху.
+    [AllowAnonymous]
+    [HttpGet("{id:guid}/reviews")]
+    public async Task<ActionResult<PagedViewModel<ReviewViewModel>>> GetReviews(Guid id, int page = 1, int pageSize = 20) =>
+        await reviewAppService.GetPublishedUserReviewsAsync(id, page, pageSize);
+
+    #endregion
+
     #region Own profile
 
     // Изменения своего профиля возвращают новый токен: в нём имя, почта и версия аватарки, которые показывает сайт.

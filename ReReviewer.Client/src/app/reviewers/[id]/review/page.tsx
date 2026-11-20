@@ -41,6 +41,7 @@ async function NewReview({ params }: Pick<PageProps<"/reviewers/[id]/review">, "
   if (response.status === 401) redirect(`/login?returnTo=${encodeURIComponent(`/reviewers/${id}/review`)}`);
   const existing = (myReviews ?? failed(response)).find((review) => review.reviewerId === id);
   const user = await getCurrentUser();
+  const isOwner = user !== null && reviewer.userId === user.id;
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-col gap-6">
@@ -51,7 +52,16 @@ async function NewReview({ params }: Pick<PageProps<"/reviewers/[id]/review">, "
         </p>
       </div>
 
-      {existing ? (
+      {isOwner ? (
+        // Владелец профиля не видит кнопку «Написать отзыв» (reviewers/[id]/page.tsx), но может открыть адрес сам.
+        // Оценить себя не даст и API.
+        <>
+          <p>Это ваш профиль: оценивать самого себя нельзя. Отзывы о нём пишут читатели.</p>
+          <Link href={`/reviewers/${id}/edit`} className={`${buttonVariants({ variant: "outline" })} self-start`}>
+            Редактировать профиль
+          </Link>
+        </>
+      ) : existing ? (
         <>
           <p>Вы уже оставили отзыв об этом обзорщике. Написать можно только один, но этот можно изменить.</p>
           <ReviewCard review={existing} own />

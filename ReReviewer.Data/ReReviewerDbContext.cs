@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using ReReviewer.Data.Conversions;
 using ReReviewer.Data.Entities;
 
 namespace ReReviewer.Data;
@@ -53,6 +54,13 @@ public class ReReviewerDbContext : DbContext
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
 
+    }
+
+    // Даты читаются из базы как UTC (см. UtcDateTimeConverter). Тип столбцов не меняется, миграция не нужна.
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+    {
+        configurationBuilder.Properties<DateTime>().HaveConversion<UtcDateTimeConverter>();
+        configurationBuilder.Properties<DateTime?>().HaveConversion<UtcDateTimeConverter>();
     }
 
     // Каскадом удаляется только то, что принадлежит удаляемой записи:

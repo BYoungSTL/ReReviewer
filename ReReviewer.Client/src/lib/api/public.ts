@@ -16,6 +16,10 @@ export const isGuid = (value: string) =>
 export const reviewerTag = (id: string) =>
   `reviewer:${id}`;
 
+// Публичная страница пользователя: имя, аватарка, привязанный профиль обзорщика и опубликованные отзывы.
+export const userTag = (id: string) =>
+  `user:${id}`;
+
 // Отзывы и рейтинги всех обзорщиков: например, удаление пользователя убирает его отзывы сразу у нескольких обзорщиков.
 export const REVIEWS_TAG = "reviews";
 
@@ -87,6 +91,31 @@ export async function getGenres() {
   cacheTag("genres");
 
   const { data, response } = await publicApi.GET("/api/genres");
+
+  return data ?? failed(response);
+}
+
+// Без почты и ролей: только то, что видно всем.
+export async function getPublicUser(id: string) {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag(userTag(id));
+
+  const { data, response } = await publicApi.GET("/api/users/{id}/profile", { params: { path: { id } } });
+  if (response.status === 404) return null;
+
+  return data ?? failed(response);
+}
+
+// Опубликованные отзывы пользователя, новые сверху.
+export async function getUserReviews(id: string, page = 1) {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag(userTag(id), REVIEWS_TAG);
+
+  const { data, response } = await publicApi.GET("/api/users/{id}/reviews", {
+    params: { path: { id }, query: { page, pageSize: REVIEWS_PAGE_SIZE } },
+  });
 
   return data ?? failed(response);
 }

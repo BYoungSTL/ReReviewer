@@ -54,7 +54,7 @@ async function Queue({ searchParams }: Pick<PageProps<"/admin/reviews">, "search
             {review.updatedAt && <> · изменён {formatDate(review.updatedAt)}</>}
           </>}
         >
-          <DecisionForm action={moderateReview.bind(null, review.id ?? "", review.reviewerId)} />
+          <DecisionForm action={moderateReview.bind(null, review.id ?? "", review.reviewerId, review.userId)} />
         </ReviewCard>
       ))}
       <Pager basePath="/admin/reviews" page={queue.page} totalPages={queue.totalPages} />

@@ -4,7 +4,7 @@ import { updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { userApi } from "@/lib/api/client";
 import { API_UNAVAILABLE, problemMessage } from "@/lib/api/errors";
-import { reviewerTag } from "@/lib/api/public";
+import { reviewerTag, userTag } from "@/lib/api/public";
 import type { ReviewViewModel } from "@/lib/api/schema";
 
 // Значения формы возвращаются при ошибке: после Server Action React сбрасывает поля к значениям по умолчанию.
@@ -23,6 +23,11 @@ export type ReviewFormState = {
 const CRITERION_FIELD = "criterion-";
 const EMPTY_GUID = "00000000-0000-0000-0000-000000000000";
 
+// Новый отзыв о своём профиле форма не показывает, а эту ошибку владелец встретит, правя отзыв, написанный до привязки.
+const KNOWN_ERRORS: Record<string, string> = {
+  "You cannot review your own reviewer profile.": "Это ваш профиль обзорщика: оценивать самого себя нельзя, поэтому отзыв о нём не изменить.",
+};
+
 export async function createReview(reviewerId: string, _state: ReviewFormState, form: FormData): Promise<ReviewFormState> {
   return saveReview(form, `/reviewers/${reviewerId}/review`, async (body) => {
     const api = await userApi();
@@ -38,8 +43,11 @@ export async function updateReview(reviewId: string, _state: ReviewFormState, fo
     const api = await userApi();
     const result = await api.PUT("/api/reviews/{id}", { params: { path: { id: reviewId } }, body });
 
-    // Опубликованный отзыв после правки уходит со страницы обзорщика и перестаёт влиять на его рейтинг.
-    if (result.data) updateTag(reviewerTag(result.data.reviewerId));
+    // Опубликованный отзыв после правки уходит со страниц обзорщика и автора и перестаёт влиять на рейтинг.
+    if (result.data) {
+      updateTag(reviewerTag(result.data.reviewerId));
+      updateTag(userTag(result.data.userId));
+    }
 
     return result;
   });
@@ -88,7 +96,11 @@ async function saveReview(
   // Токен истёк, пока пользователь заполнял форму. Введённое при этом пропадёт: вход открывает страницу заново.
   if (result.response.status === 401) redirect(`/login?returnTo=${encodeURIComponent(formPath)}`);
   // Проверяется статус, а не error: при ошибке с пустым телом openapi-fetch вернёт в error пустую строку.
-  if (!result.response.ok) return failure(problemMessage(result.error, "Не удалось сохранить отзыв."));
+  if (!result.response.ok) {
+    const message = problemMessage(result.error, "Не удалось сохранить отзыв.");
+
+    return failure(KNOWN_ERRORS[message] ?? message);
+  }
 
   redirect("/me?sent=1");
 }

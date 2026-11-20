@@ -112,6 +112,18 @@ public class ReviewService(ReReviewerDbContext context) : BaseService<Review, Gu
     public async Task<int> CountPublishedByReviewerAsync(Guid reviewerId, CancellationToken cancellationToken = default) =>
         await PublishedByReviewer(reviewerId).CountAsync(cancellationToken);
 
+    // Публичная страница пользователя: только опубликованные отзывы, новые сверху.
+    public async Task<IReadOnlyList<Review>> GetPublishedByUserAsync(Guid userId, int skip = 0, int take = 20, CancellationToken cancellationToken = default) =>
+        await PublishedByUser(userId)
+            .AsNoTracking()
+            .OrderByDescending(r => r.CreatedAt).ThenBy(r => r.Id)
+            .Skip(Math.Max(skip, 0))
+            .Take(Math.Clamp(take, 1, MaxPageSize))
+            .ToListAsync(cancellationToken);
+
+    public async Task<int> CountPublishedByUserAsync(Guid userId, CancellationToken cancellationToken = default) =>
+        await PublishedByUser(userId).CountAsync(cancellationToken);
+
     // Очередь модерации: первым идёт отзыв, который ждёт дольше всех (с момента создания или последней правки).
     public async Task<IReadOnlyList<Review>> GetPendingAsync(int skip = 0, int take = 20, CancellationToken cancellationToken = default) =>
         await Pending()
@@ -183,6 +195,9 @@ public class ReviewService(ReReviewerDbContext context) : BaseService<Review, Gu
     private IQueryable<Review> PublishedByReviewer(Guid reviewerId) =>
         Set.Where(r => r.ReviewerId == reviewerId && r.Status == ReviewStatus.Published);
 
+    private IQueryable<Review> PublishedByUser(Guid userId) =>
+        Set.Where(r => r.UserId == userId && r.Status == ReviewStatus.Published);
+
     private IQueryable<Review> Pending() =>
         Set.Where(r => r.Status == ReviewStatus.Pending);
 
@@ -204,8 +219,16 @@ public class ReviewService(ReReviewerDbContext context) : BaseService<Review, Gu
         if (await Context.Criteria.CountAsync(c => criterionIds.Contains(c.Id), cancellationToken) != criterionIds.Count)
             throw new KeyNotFoundException("One or more criteria not found.");
 
-        if (!await Context.Reviewers.AnyAsync(r => r.Id == review.ReviewerId, cancellationToken))
-            throw new KeyNotFoundException("Reviewer not found.");
+        var reviewer = await Context.Reviewers
+            .Where(r => r.Id == review.ReviewerId)
+            .Select(r => new { r.UserId })
+            .FirstOrDefaultAsync(cancellationToken)
+            ?? throw new KeyNotFoundException("Reviewer not found.");
+
+        // Обзорщик с подтверждённым аккаунтом не оценивает сам себя, иначе мог бы поднять свой рейтинг.
+        // Отзыв, написанный до привязки профиля, поэтому тоже не изменить — только удалить.
+        if (reviewer.UserId == review.UserId)
+            throw new ValidationException("You cannot review your own reviewer profile.");
 
         if (review.Materials.Any(m => m.ReviewerId != review.ReviewerId))
             throw new ValidationException("A review can only reference materials of the reviewer it is about.");
