@@ -9,6 +9,10 @@ public class Reviewer : Entity<Guid>
     // Заполняется, когда обзорщик заявил права на свой профиль.
     public Guid? UserId { get; set; }
 
+    // «О себе» и ссылки на канал, сайт, соцсети. Меняет сам обзорщик с подтверждённым аккаунтом.
+    public string? About { get; set; }
+    public List<string> Links { get; set; } = [];
+
     #region Virtual Properties
 
     public virtual User? User { get; set; }

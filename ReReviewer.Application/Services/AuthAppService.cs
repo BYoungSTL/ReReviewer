@@ -29,6 +29,8 @@ public class AuthAppService(IUserService userService, IUserAppService userAppSer
     }
 
     // Неверная почта и неверный пароль дают одну и ту же ошибку — AuthenticationException (401).
+    // О блокировке (403) сообщается только после верного пароля: иначе по ответу можно было бы узнать,
+    // что чужой аккаунт заблокирован.
     public async Task<UserViewModel> LoginAsync(LoginViewModel login)
     {
         var user = string.IsNullOrWhiteSpace(login.Email)
@@ -38,6 +40,9 @@ public class AuthAppService(IUserService userService, IUserAppService userAppSer
         var passwordMatches = PasswordHasher.Verify(login.Password ?? string.Empty, user?.PasswordHash ?? DummyPasswordHash.Value);
         if (user is null || !passwordMatches)
             throw new AuthenticationException("Invalid email or password.");
+
+        if (user.BlockedAt is not null)
+            throw new UnauthorizedAccessException("This account is blocked.");
 
         return await userAppService.GetUserAsync(user.Id);
     }

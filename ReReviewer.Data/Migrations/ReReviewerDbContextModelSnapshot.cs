@@ -18,6 +18,9 @@ namespace ReReviewer.Data.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasAnnotation("ProductVersion", "10.0.5")
+                .HasAnnotation("Proxies:ChangeTracking", false)
+                .HasAnnotation("Proxies:CheckEquality", false)
+                .HasAnnotation("Proxies:LazyLoading", true)
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -50,6 +53,21 @@ namespace ReReviewer.Data.Migrations
                     b.HasIndex("ReviewersId");
 
                     b.ToTable("ReviewerGenres", (string)null);
+                });
+
+            modelBuilder.Entity("GenreReviewerSuggestion", b =>
+                {
+                    b.Property<int>("GenresId")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("ReviewerSuggestionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("GenresId", "ReviewerSuggestionId");
+
+                    b.HasIndex("ReviewerSuggestionId");
+
+                    b.ToTable("ReviewerSuggestionGenres", (string)null);
                 });
 
             modelBuilder.Entity("MaterialReview", b =>
@@ -301,10 +319,18 @@ namespace ReReviewer.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("About")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
                     b.Property<string>("FullName")
                         .IsRequired()
                         .HasMaxLength(250)
                         .HasColumnType("nvarchar(250)");
+
+                    b.PrimitiveCollection<string>("Links")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<Guid?>("UserId")
                         .HasColumnType("uniqueidentifier");
@@ -338,6 +364,49 @@ namespace ReReviewer.Data.Migrations
                     b.ToTable("ReviewerBadges");
                 });
 
+            modelBuilder.Entity("ReReviewer.Data.Entities.ReviewerClaim", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<DateTime?>("DecidedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Note")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<Guid>("ReviewerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReviewerId");
+
+                    b.HasIndex("UserId")
+                        .IsUnique()
+                        .HasFilter("[Status] = 'Pending'");
+
+                    b.HasIndex("Status", "CreatedAt");
+
+                    b.ToTable("ReviewerClaims");
+                });
+
             modelBuilder.Entity("ReReviewer.Data.Entities.ReviewerOutlet", b =>
                 {
                     b.Property<Guid>("ReviewerId")
@@ -357,6 +426,52 @@ namespace ReReviewer.Data.Migrations
                     b.HasIndex("OutletId");
 
                     b.ToTable("ReviewerOutlets");
+                });
+
+            modelBuilder.Entity("ReReviewer.Data.Entities.ReviewerSuggestion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<DateTime?>("DecidedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
+
+                    b.Property<bool>("IsSelf")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<Guid?>("ReviewerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("Status", "CreatedAt");
+
+                    b.ToTable("ReviewerSuggestions");
                 });
 
             modelBuilder.Entity("ReReviewer.Data.Entities.Role", b =>
@@ -386,6 +501,12 @@ namespace ReReviewer.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<DateTime?>("AvatarUpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("BlockedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
@@ -401,6 +522,9 @@ namespace ReReviewer.Data.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<DateTime?>("PasswordChangedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -411,6 +535,28 @@ namespace ReReviewer.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("Users");
+                });
+
+            modelBuilder.Entity("ReReviewer.Data.Entities.UserAvatar", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte[]>("Content")
+                        .IsRequired()
+                        .HasColumnType("varbinary(max)");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("UserAvatars");
                 });
 
             modelBuilder.Entity("RoleUser", b =>
@@ -454,6 +600,21 @@ namespace ReReviewer.Data.Migrations
                     b.HasOne("ReReviewer.Data.Entities.Reviewer", null)
                         .WithMany()
                         .HasForeignKey("ReviewersId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("GenreReviewerSuggestion", b =>
+                {
+                    b.HasOne("ReReviewer.Data.Entities.Genre", null)
+                        .WithMany()
+                        .HasForeignKey("GenresId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ReReviewer.Data.Entities.ReviewerSuggestion", null)
+                        .WithMany()
+                        .HasForeignKey("ReviewerSuggestionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
@@ -576,6 +737,25 @@ namespace ReReviewer.Data.Migrations
                     b.Navigation("Reviewer");
                 });
 
+            modelBuilder.Entity("ReReviewer.Data.Entities.ReviewerClaim", b =>
+                {
+                    b.HasOne("ReReviewer.Data.Entities.Reviewer", "Reviewer")
+                        .WithMany()
+                        .HasForeignKey("ReviewerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ReReviewer.Data.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Reviewer");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("ReReviewer.Data.Entities.ReviewerOutlet", b =>
                 {
                     b.HasOne("ReReviewer.Data.Entities.Outlet", "Outlet")
@@ -593,6 +773,26 @@ namespace ReReviewer.Data.Migrations
                     b.Navigation("Outlet");
 
                     b.Navigation("Reviewer");
+                });
+
+            modelBuilder.Entity("ReReviewer.Data.Entities.ReviewerSuggestion", b =>
+                {
+                    b.HasOne("ReReviewer.Data.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("ReReviewer.Data.Entities.UserAvatar", b =>
+                {
+                    b.HasOne("ReReviewer.Data.Entities.User", null)
+                        .WithOne()
+                        .HasForeignKey("ReReviewer.Data.Entities.UserAvatar", "Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("RoleUser", b =>

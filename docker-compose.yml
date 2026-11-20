@@ -1,7 +1,7 @@
-# Весь ReReviewer в Docker: SQL Server, миграции и API.
+# Весь ReReviewer в Docker: SQL Server, миграции, API и сайт.
 #
 #   cp .env.example .env            # и заполнить секреты
-#   docker compose up --build -d    # база → миграции → API на http://localhost:8080 (Scalar: /scalar)
+#   docker compose up --build -d    # база → миграции → API на http://localhost:8080 (Scalar: /scalar) → сайт на http://localhost:3000
 #   docker compose --profile seed run --rm seed     # по желанию: тестовые данные из ReReviewer.Data/Scripts
 #   docker compose down             # остановить; с -v — удалить и данные базы
 #
@@ -58,6 +58,19 @@ services:
     depends_on:
       migrate:
         condition: service_completed_successfully
+    restart: unless-stopped
+
+  # Сайт на Next.js (ReReviewer.Client). К API обращается сам сервер Next.js по внутренней сети compose, браузер — только к сайту.
+  client:
+    build:
+      context: ./ReReviewer.Client
+    environment:
+      API_URL: http://api:8080
+      SITE_URL: ${SITE_URL:-http://localhost:3000}
+    ports:
+      - "${CLIENT_PORT:-3000}:3000"
+    depends_on:
+      - api
     restart: unless-stopped
 
   # Тестовые данные: docker compose --profile seed run --rm seed

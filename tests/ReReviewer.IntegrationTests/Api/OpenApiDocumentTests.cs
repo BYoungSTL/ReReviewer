@@ -38,6 +38,31 @@ public class OpenApiDocumentTests(ApiFixture api)
         Description("/api/users/me", "put").ShouldNotContain("Requires role");
     }
 
+    // По документу генерируется клиент фронтенда: у ответов должны быть схемы, а у чисел — только тип integer.
+    [Fact]
+    public async Task Document_DescribesSuccessResponses_AndStrictNumbers()
+    {
+        await using var factory = new ApiFactory(api.ConnectionString, "Development");
+        using var client = factory.CreateClient();
+
+        var document = await client.GetFromJsonAsync<JsonElement>("openapi/v1.json");
+        var paths = document.GetProperty("paths");
+        JsonElement Responses(string path, string method) => paths.GetProperty(path).GetProperty(method).GetProperty("responses");
+        string? SchemaRef(string path, string method, string status) =>
+            Responses(path, method).GetProperty(status).GetProperty("content").GetProperty("application/json")
+                .GetProperty("schema").GetProperty("$ref").GetString();
+
+        SchemaRef("/api/reviewers/{id}/rating", "get", "200").ShouldBe("#/components/schemas/ReviewerRatingViewModel");
+        SchemaRef("/api/auth/login", "post", "200").ShouldBe("#/components/schemas/AuthTokenViewModel");
+        SchemaRef("/api/reviews", "post", "201").ShouldBe("#/components/schemas/ReviewViewModel");
+        Responses("/api/reviews", "post").TryGetProperty("200", out _).ShouldBeFalse();
+        Responses("/api/reviews/{id}", "delete").TryGetProperty("200", out _).ShouldBeFalse();
+
+        var score = document.GetProperty("components").GetProperty("schemas").GetProperty("ReviewViewModel")
+            .GetProperty("properties").GetProperty("score");
+        score.GetProperty("type").GetString().ShouldBe("integer");
+    }
+
     [Fact]
     public async Task Document_IsNotServedOutsideDevelopment()
     {

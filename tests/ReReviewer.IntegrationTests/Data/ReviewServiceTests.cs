@@ -140,6 +140,30 @@ public class ReviewServiceTests(DatabaseFixture database)
         rating.ReviewCount.ShouldBe(1);
         rating.AverageScore.ShouldBe(6);
         rating.Criteria.Single().AverageScore.ShouldBe(8);
+        rating.Scores.Select(s => (int)s.Score).ShouldBe(Enumerable.Range(1, 10));
+        rating.Scores.Where(s => s.Count > 0).ShouldBe([new ScoreCount(6, 1)]);
+    }
+
+    [Fact]
+    public async Task GetPublishedSummariesAsync_AveragesOnlyPublished_AndFiltersByReviewer()
+    {
+        var s = await ArrangeAsync();
+        await using var db = database.CreateContext();
+        var second = await TestData.UserAsync(db);
+        var third = await TestData.UserAsync(db);
+        var unreviewed = await TestData.ReviewerAsync(db);
+        var service = new ReviewService(db);
+        var first = await service.CreateAsync(s.UserId, s.ReviewerId, new ReviewInput("Fine", 6, [], new Dictionary<int, byte>()));
+        var good = await service.CreateAsync(second.Id, s.ReviewerId, new ReviewInput("Good", 9, [], new Dictionary<int, byte>()));
+        await service.CreateAsync(third.Id, s.ReviewerId, new ReviewInput("Pending", 1, [], new Dictionary<int, byte>()));
+        await service.SetStatusAsync(first.Id, ReviewStatus.Published);
+        await service.SetStatusAsync(good.Id, ReviewStatus.Published);
+
+        await using var check = database.CreateContext();
+        var summaries = await new ReviewService(check).GetPublishedSummariesAsync([s.ReviewerId, unreviewed.Id]);
+
+        summaries.Keys.ShouldBe([s.ReviewerId]);
+        summaries[s.ReviewerId].ShouldBe(new ReviewerScoreSummary(s.ReviewerId, 2, 7.5));
     }
 
     private async Task<Setup> ArrangeAsync()

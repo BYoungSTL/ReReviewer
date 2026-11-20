@@ -12,6 +12,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReReviewer.UnitTests", "tes
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReReviewer.IntegrationTests", "tests\ReReviewer.IntegrationTests\ReReviewer.IntegrationTests.csproj", "{78C649AA-3B2C-45C3-9BBD-59F8CA619CC3}"
 EndProject
+Project("{54A90642-561A-4BB1-A94E-469ADEE60C69}") = "ReReviewer.Client", "ReReviewer.Client\ReReviewer.Client.esproj", "{B09C45E1-C3CE-4A18-9CB5-7D4D97326837}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -82,6 +84,12 @@ Global
 		{78C649AA-3B2C-45C3-9BBD-59F8CA619CC3}.Release|x64.Build.0 = Release|Any CPU
 		{78C649AA-3B2C-45C3-9BBD-59F8CA619CC3}.Release|x86.ActiveCfg = Release|Any CPU
 		{78C649AA-3B2C-45C3-9BBD-59F8CA619CC3}.Release|x86.Build.0 = Release|Any CPU
+		{B09C45E1-C3CE-4A18-9CB5-7D4D97326837}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B09C45E1-C3CE-4A18-9CB5-7D4D97326837}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{B09C45E1-C3CE-4A18-9CB5-7D4D97326837}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{B09C45E1-C3CE-4A18-9CB5-7D4D97326837}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B09C45E1-C3CE-4A18-9CB5-7D4D97326837}.Release|x64.ActiveCfg = Release|Any CPU
+		{B09C45E1-C3CE-4A18-9CB5-7D4D97326837}.Release|x86.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

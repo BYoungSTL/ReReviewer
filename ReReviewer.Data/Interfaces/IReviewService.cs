@@ -18,4 +18,8 @@ public interface IReviewService : IBaseService<Review, Guid>
     public Task<int> CountPendingAsync(CancellationToken cancellationToken = default);
     public Task<IReadOnlyList<Review>> GetByUserAsync(Guid userId, CancellationToken cancellationToken = default);
     public Task<ReviewerRating> GetReviewerRatingAsync(Guid reviewerId, CancellationToken cancellationToken = default);
+
+    // Без reviewerIds — по всем обзорщикам. Обзорщиков без опубликованных отзывов в словаре нет.
+    public Task<IReadOnlyDictionary<Guid, ReviewerScoreSummary>> GetPublishedSummariesAsync(
+        IReadOnlyCollection<Guid>? reviewerIds = null, CancellationToken cancellationToken = default);
 }

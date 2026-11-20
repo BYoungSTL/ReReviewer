@@ -82,6 +82,9 @@ public class ReviewAppService(IReviewService reviewService) : IReviewAppService
                     AverageScore = c.AverageScore,
                     ScoreCount = c.ScoreCount
                 })
+                .ToList(),
+            Scores = rating.Scores
+                .Select(s => new ScoreCountViewModel { Score = s.Score, Count = s.Count })
                 .ToList()
         };
     }
@@ -136,6 +139,7 @@ public class ReviewAppService(IReviewService reviewService) : IReviewAppService
                 })
                 .ToList(),
             UserName = review.User.Name,
+            UserAvatarUpdatedAt = review.User.AvatarUpdatedAt,
             ReviewerName = review.Reviewer.FullName,
             Status = review.Status.ToString(),
             CreatedAt = review.CreatedAt,

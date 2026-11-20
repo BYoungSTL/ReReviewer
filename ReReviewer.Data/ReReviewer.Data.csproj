@@ -18,4 +18,11 @@
       <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.5" />
     </ItemGroup>
 
+    <!-- Microsoft.Data.SqlClient тянет Pkcs с уязвимостями CVE-2026-84008 и CVE-2026-70162 (исправлены в 9.0.21 и 10.0.13).
+         Обновление EF Core не помогает: EF Core 10.0.14 тянет Pkcs 9.0.11. Убрать, когда SqlClient в зависимостях EF Core
+         перейдёт на исправленную версию. Другие проекты получают эту версию через ссылку на ReReviewer.Data. -->
+    <ItemGroup>
+      <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.14" />
+    </ItemGroup>
+
 </Project>

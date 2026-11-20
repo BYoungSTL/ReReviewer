@@ -20,5 +20,11 @@ public class UserViewModel
     public Guid? ReviewerId { get; set; }
     public DateTime CreatedAt { get; set; }
 
+    // Null — аккаунт активен. Меняется через IUserAppService.BlockUserAsync и UnblockUserAsync.
+    public DateTime? BlockedAt { get; set; }
+
+    // Null — аватарки нет. Иначе картинка — api/users/{id}/avatar, а время годится как версия для её адреса.
+    public DateTime? AvatarUpdatedAt { get; set; }
+
     #endregion
 }

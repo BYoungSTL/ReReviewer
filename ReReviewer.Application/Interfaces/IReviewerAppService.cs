@@ -10,4 +10,6 @@ public interface IReviewerAppService
     public Task DeleteReviewerAsync(Guid reviewerId);
 
     public Task<ReviewerViewModel> ValidateReviewerAsync(Guid reviewerId, Guid userId);
+
+    public Task<ReviewerViewModel> UpdateOwnProfileAsync(Guid userId, ReviewerProfileViewModel profile);
 }

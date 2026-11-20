@@ -11,6 +11,9 @@
 .claude/
 **/*.user
 
+# Сайт собирается своим Dockerfile из папки ReReviewer.Client, образам API он не нужен (а его node_modules огромны)
+ReReviewer.Client/
+
 # Секреты и локальные настройки
 .env
 **/secrets.json

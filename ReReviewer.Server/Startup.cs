@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -44,7 +45,16 @@ namespace ReReviewer
             // Обязательность полей проверяют AppService'ы (ValidationException → 400). Неявный [Required]
             // для не-nullable строк отключён: иначе, например, жанр во вложенном списке игры без Title,
             // где нужен только Id, отклонялся бы ещё до сервиса.
-            services.AddControllers(options => options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true);
+            services.AddControllers(options =>
+                {
+                    options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true;
+                    options.Conventions.Add(new SuccessResponseConvention());
+                })
+                // Числа только числами: по умолчанию принимается и "8", и тогда в OpenAPI у каждого числа
+                // тип integer | string, а в сгенерированном клиенте фронтенда — number | string.
+                .AddJsonOptions(options => options.JsonSerializerOptions.NumberHandling = JsonNumberHandling.Strict);
+            // Генератор OpenAPI строит схемы по этим настройкам, а не по настройкам MVC выше.
+            services.ConfigureHttpJsonOptions(options => options.SerializerOptions.NumberHandling = JsonNumberHandling.Strict);
             // api/auth/login, а не api/Auth/login: и в документации, и в ссылках из CreatedAtAction.
             services.AddRouting(options => options.LowercaseUrls = true);
 
@@ -107,6 +117,8 @@ namespace ReReviewer
             services.AddScoped<IMaterialService, MaterialService>();
             services.AddScoped<ICriterionService, CriterionService>();
             services.AddScoped<IReviewService, ReviewService>();
+            services.AddScoped<IReviewerSuggestionService, ReviewerSuggestionService>();
+            services.AddScoped<IReviewerClaimService, ReviewerClaimService>();
 
             services.AddScoped<IUserAppService, UserAppService>();
             services.AddScoped<IRoleAppService, RoleAppService>();
@@ -118,6 +130,7 @@ namespace ReReviewer
             services.AddScoped<IMaterialAppService, MaterialAppService>();
             services.AddScoped<ICriterionAppService, CriterionAppService>();
             services.AddScoped<IReviewAppService, ReviewAppService>();
+            services.AddScoped<IReviewerRequestAppService, ReviewerRequestAppService>();
             services.AddScoped<IAuthAppService, AuthAppService>();
 
             services.AddSingleton<IJwtTokenService, JwtTokenService>();
@@ -161,6 +174,22 @@ namespace ReReviewer
                         IssuerSigningKey = jwt.CreateSigningKey(),
                         NameClaimType = JwtRegisteredClaimNames.Name,
                         RoleClaimType = "role"
+                    };
+
+                    // Токен действует до истечения срока, а заблокированный или удалённый пользователь должен
+                    // потерять доступ сразу, как и сеансы, открытые до смены пароля. Поэтому на каждом запросе
+                    // с токеном проверяется аккаунт и время выдачи токена (iat).
+                    bearer.Events = new JwtBearerEvents
+                    {
+                        OnTokenValidated = async context =>
+                        {
+                            var users = context.HttpContext.RequestServices.GetRequiredService<IUserAppService>();
+                            var subject = context.Principal?.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+                            var issuedAt = context.SecurityToken is JsonWebToken token ? token.IssuedAt : DateTime.MinValue;
+
+                            if (!Guid.TryParse(subject, out var userId) || !await users.AcceptsTokenAsync(userId, issuedAt))
+                                context.Fail("The account is blocked, no longer exists or changed its password.");
+                        }
                     };
                 });
         }

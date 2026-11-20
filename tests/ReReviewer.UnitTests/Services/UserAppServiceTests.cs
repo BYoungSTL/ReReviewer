@@ -124,4 +124,124 @@ public class UserAppServiceTests
     }
 
     #endregion
+
+    #region Блокировка
+
+    [Fact]
+    public async Task BlockUserAsync_SetsBlockedAt()
+    {
+        var user = StoredUser();
+
+        var result = await _service.BlockUserAsync(user.Id, Guid.NewGuid());
+
+        user.BlockedAt.ShouldNotBeNull();
+        result.BlockedAt.ShouldBe(user.BlockedAt);
+        await _users.Received(1).UpdateAsync(user, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task BlockUserAsync_AlreadyBlocked_KeepsDate()
+    {
+        var blockedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        var user = StoredUser(blockedAt);
+
+        await _service.BlockUserAsync(user.Id, Guid.NewGuid());
+
+        user.BlockedAt.ShouldBe(blockedAt);
+    }
+
+    [Fact]
+    public async Task BlockUserAsync_Self_Throws()
+    {
+        var id = Guid.NewGuid();
+
+        var exception = await Should.ThrowAsync<ValidationException>(() => _service.BlockUserAsync(id, id));
+
+        exception.Message.ShouldBe("You cannot block yourself.");
+        await _users.DidNotReceiveWithAnyArgs().UpdateAsync(default!, default);
+    }
+
+    [Fact]
+    public async Task UnblockUserAsync_ClearsBlockedAt()
+    {
+        var user = StoredUser(DateTime.UtcNow);
+
+        var result = await _service.UnblockUserAsync(user.Id);
+
+        user.BlockedAt.ShouldBeNull();
+        result.BlockedAt.ShouldBeNull();
+        await _users.Received(1).UpdateAsync(user, Arg.Any<CancellationToken>());
+    }
+
+    private User StoredUser(DateTime? blockedAt = null)
+    {
+        var user = new User
+        {
+            Id = Guid.NewGuid(),
+            Name = "player",
+            Email = "player@test.local",
+            PasswordHash = PasswordHasher.Hash("secret-123"),
+            BlockedAt = blockedAt
+        };
+        _users.GetByIdAsync(user.Id, Arg.Any<CancellationToken>()).Returns(user);
+
+        return user;
+    }
+
+    #endregion
+
+    #region Свой профиль
+
+    [Theory]
+    [InlineData(null, "Current password is required to change email.")]
+    [InlineData("wrong-password", "Current password is incorrect.")]
+    public async Task UpdateProfileAsync_NewEmailWithoutCorrectPassword_Throws(string? currentPassword, string message)
+    {
+        var user = StoredUser();
+
+        var exception = await Should.ThrowAsync<ValidationException>(() => _service.UpdateProfileAsync(user.Id,
+            new ProfileViewModel { Name = "player", Email = "new@test.local", CurrentPassword = currentPassword }));
+
+        exception.Message.ShouldBe(message);
+        await _users.DidNotReceiveWithAnyArgs().UpdateAsync(default!, default);
+    }
+
+    [Fact]
+    public async Task ChangePasswordAsync_WrongCurrentPassword_Throws()
+    {
+        var user = StoredUser();
+
+        var exception = await Should.ThrowAsync<ValidationException>(() => _service.ChangePasswordAsync(user.Id,
+            new PasswordChangeViewModel { CurrentPassword = "wrong-password", NewPassword = "new-secret-123" }));
+
+        exception.Message.ShouldBe("Current password is incorrect.");
+        PasswordHasher.Verify("secret-123", user.PasswordHash).ShouldBeTrue();
+    }
+
+    [Theory]
+    [InlineData(new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0 }, "image/png")]
+    [InlineData(new byte[] { 0xFF, 0xD8, 0xFF, 0xE0, 0 }, "image/jpeg")]
+    [InlineData(new byte[] { 0x52, 0x49, 0x46, 0x46, 1, 2, 3, 4, 0x57, 0x45, 0x42, 0x50, 0 }, "image/webp")]
+    public async Task SetAvatarAsync_DetectsTypeByContent(byte[] content, string contentType)
+    {
+        var user = StoredUser();
+        _users.SetAvatarAsync(user.Id, content, contentType, Arg.Any<CancellationToken>()).Returns(user);
+
+        await _service.SetAvatarAsync(user.Id, content);
+
+        await _users.Received(1).SetAvatarAsync(user.Id, content, contentType, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task SetAvatarAsync_TooLarge_Throws()
+    {
+        var content = new byte[512 * 1024 + 1];
+        content[0] = 0xFF; content[1] = 0xD8; content[2] = 0xFF;
+
+        var exception = await Should.ThrowAsync<ValidationException>(() => _service.SetAvatarAsync(Guid.NewGuid(), content));
+
+        exception.Message.ShouldBe("Avatar must be at most 512 KB.");
+    }
+
+    #endregion
 }

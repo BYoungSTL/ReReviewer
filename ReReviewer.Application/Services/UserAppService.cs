@@ -49,8 +49,13 @@ public class UserAppService(IUserService userService, IRoleService roleService) 
             u.Name = name;
             u.Email = email;
 
-            if (passwordHash is not null)
-                u.PasswordHash = passwordHash;
+            if (passwordHash is null)
+                return;
+
+            u.PasswordHash = passwordHash;
+            // Смена пароля у существующего пользователя завершает его сеансы: токены, выданные раньше, не примутся.
+            if (user.Id is not null)
+                u.PasswordChangedAt = DateTime.UtcNow;
         });
 
         user.Id = saved.Id;
@@ -77,6 +82,97 @@ public class UserAppService(IUserService userService, IRoleService roleService) 
         return ToViewModel(user);
     }
 
+    // Заблокированный не может войти, а выданные ему токены перестают приниматься (AcceptsTokenAsync, см. Startup).
+    // Себя заблокировать нельзя, иначе администратор сам потеряет доступ. Повторная блокировка не сдвигает дату.
+    public async Task<UserViewModel> BlockUserAsync(Guid userId, Guid currentUserId)
+    {
+        if (userId == currentUserId)
+            throw new ValidationException("You cannot block yourself.");
+
+        var user = await userService.GetRequiredAsync(userId);
+
+        user.BlockedAt ??= DateTime.UtcNow;
+        await userService.UpdateAsync(user);
+
+        return ToViewModel(user);
+    }
+
+    public async Task<UserViewModel> UnblockUserAsync(Guid userId)
+    {
+        var user = await userService.GetRequiredAsync(userId);
+
+        user.BlockedAt = null;
+        await userService.UpdateAsync(user);
+
+        return ToViewModel(user);
+    }
+
+    public async Task<bool> AcceptsTokenAsync(Guid userId, DateTime issuedAt) =>
+        await userService.AcceptsTokenAsync(userId, issuedAt);
+
+    #region Own profile
+
+    // Почта — это логин, поэтому её смену подтверждает текущий пароль: с чужого открытого сеанса
+    // нельзя увести аккаунт, поменяв почту. Имя меняется без пароля.
+    public async Task<UserViewModel> UpdateProfileAsync(Guid userId, ProfileViewModel profile)
+    {
+        var user = await userService.GetRequiredAsync(userId);
+
+        if (!string.Equals(profile.Email?.Trim(), user.Email, StringComparison.OrdinalIgnoreCase))
+            EnsureCurrentPassword(user, profile.CurrentPassword, "Current password is required to change email.");
+
+        await SaveUserAsync(new UserViewModel { Id = userId, Name = profile.Name, Email = profile.Email });
+
+        return await GetUserAsync(userId);
+    }
+
+    public async Task<UserViewModel> ChangePasswordAsync(Guid userId, PasswordChangeViewModel change)
+    {
+        var user = await userService.GetRequiredAsync(userId);
+
+        EnsureCurrentPassword(user, change.CurrentPassword, "Current password is required.");
+        if (string.IsNullOrEmpty(change.NewPassword))
+            throw new ValidationException("New password is required.");
+
+        await SaveUserAsync(new UserViewModel { Id = userId, Name = user.Name, Email = user.Email, Password = change.NewPassword });
+
+        return await GetUserAsync(userId);
+    }
+
+    public async Task<UserViewModel> SetAvatarAsync(Guid userId, byte[] content)
+    {
+        if (content.Length == 0)
+            throw new ValidationException("Avatar file is empty.");
+        if (content.Length > AvatarImage.MaxBytes)
+            throw new ValidationException($"Avatar must be at most {AvatarImage.MaxBytes / 1024} KB.");
+
+        var contentType = AvatarImage.DetectContentType(content)
+            ?? throw new ValidationException("Avatar must be a PNG, JPEG or WebP image.");
+
+        return ToViewModel(await userService.SetAvatarAsync(userId, content, contentType));
+    }
+
+    public async Task<UserViewModel> RemoveAvatarAsync(Guid userId) =>
+        ToViewModel(await userService.RemoveAvatarAsync(userId));
+
+    public async Task<AvatarViewModel> GetAvatarAsync(Guid userId)
+    {
+        var avatar = await userService.GetAvatarAsync(userId)
+            ?? throw new KeyNotFoundException("Avatar not found.");
+
+        return new AvatarViewModel { Content = avatar.Content, ContentType = avatar.ContentType, UpdatedAt = avatar.UpdatedAt };
+    }
+
+    private static void EnsureCurrentPassword(User user, string? currentPassword, string missingMessage)
+    {
+        if (string.IsNullOrEmpty(currentPassword))
+            throw new ValidationException(missingMessage);
+        if (!PasswordHasher.Verify(currentPassword, user.PasswordHash))
+            throw new ValidationException("Current password is incorrect.");
+    }
+
+    #endregion
+
     private static UserViewModel ToViewModel(User user) =>
         new()
         {
@@ -88,6 +184,8 @@ public class UserAppService(IUserService userService, IRoleService roleService) 
                 .Select(r => new RoleViewModel { Id = r.Id, Title = r.Title })
                 .ToList(),
             ReviewerId = user.Reviewer?.Id,
-            CreatedAt = user.CreatedAt
+            CreatedAt = user.CreatedAt,
+            BlockedAt = user.BlockedAt,
+            AvatarUpdatedAt = user.AvatarUpdatedAt
         };
 }
