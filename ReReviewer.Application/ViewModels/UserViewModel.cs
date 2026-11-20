@@ -18,6 +18,9 @@ public class UserViewModel
 
     // Профиль обзорщика, к которому привязан аккаунт.
     public Guid? ReviewerId { get; set; }
+
+    // Имя этого профиля. Привязанный аккаунт и профиль — одно лицо: на сайте виден он под этим именем, а не под Name.
+    public string? ReviewerName { get; set; }
     public DateTime CreatedAt { get; set; }
 
     // Null — аккаунт активен. Меняется через IUserAppService.BlockUserAsync и UnblockUserAsync.

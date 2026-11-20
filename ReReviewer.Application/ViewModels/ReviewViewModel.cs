@@ -20,7 +20,11 @@ public class ReviewViewModel
 
     #region Только чтение
 
+    // У автора с подтверждённым профилем обзорщика — имя профиля: аккаунт и профиль — одно лицо.
     public string? UserName { get; set; }
+
+    // Профиль обзорщика автора, если он подтверждён: имя автора ведёт на этот профиль.
+    public Guid? UserReviewerId { get; set; }
 
     // Null — у автора нет аватарки (см. UserViewModel.AvatarUpdatedAt).
     public DateTime? UserAvatarUpdatedAt { get; set; }

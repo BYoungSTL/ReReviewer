@@ -5,6 +5,8 @@ namespace ReReviewer.Application.ViewModels;
 public class PublicUserViewModel
 {
     public Guid Id { get; set; }
+
+    // У привязанного аккаунта — имя его профиля обзорщика.
     public string Name { get; set; } = string.Empty;
 
     // Null — аватарки нет. Иначе картинка — api/users/{id}/avatar, а время годится как версия для её адреса.

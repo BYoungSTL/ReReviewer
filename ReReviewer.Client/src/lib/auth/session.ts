@@ -9,11 +9,15 @@ import { TOKEN_COOKIE } from "./cookie";
 
 export type CurrentUser = {
   id: string;
+  // Имя на сайте: у аккаунта, привязанного к профилю обзорщика, — имя профиля.
   name: string;
   email: string;
   roles: string[];
   // Версия аватарки (claim avatar) или null, если её нет. Токен перевыпускается при каждой смене аватарки.
   avatar: string | null;
+  // Профиль обзорщика, к которому модератор привязал аккаунт (claim reviewer): это и есть профиль пользователя на сайте.
+  // Привязку, одобренную после входа, токен узнает при следующем входе.
+  reviewerId: string | null;
 };
 
 export async function getToken() {
@@ -54,6 +58,7 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
       // Одна роль приходит строкой, несколько — массивом.
       roles: [claims.role ?? []].flat(),
       avatar: claims.avatar ?? null,
+      reviewerId: claims.reviewer ?? null,
     };
   } catch {
     return null;

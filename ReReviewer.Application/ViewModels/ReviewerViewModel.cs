@@ -14,6 +14,10 @@ public class ReviewerViewModel
 
     // Аккаунт, к которому привязан профиль (IReviewerAppService.ValidateReviewerAsync).
     public Guid? UserId { get; set; }
+
+    // Аватарка привязанного аккаунта — она же аватарка профиля: api/users/{UserId}/avatar, время — версия адреса.
+    // Null — профиль не привязан или аватарки нет.
+    public DateTime? AvatarUpdatedAt { get; set; }
     public List<ReviewerOutletViewModel> Outlets { get; set; } = [];
     public List<ReviewerBadgeViewModel> Badges { get; set; } = [];
 

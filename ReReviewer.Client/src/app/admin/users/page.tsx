@@ -88,7 +88,7 @@ function UserCard({ user, roles, isSelf }: { user: UserViewModel; roles: RoleVie
           <span>{user.roles.length > 0 ? user.roles.map((role) => roleLabel(role.title)).join(", ") : "Без ролей"}</span>
           {user.reviewerId && (
             <Link href={`/reviewers/${user.reviewerId}`} className="underline underline-offset-4">
-              Профиль обзорщика
+              На сайте — профиль обзорщика «{user.reviewerName}»
             </Link>
           )}
         </p>

@@ -44,10 +44,14 @@ async function Settings() {
   return (
     <>
       <Section title="Аватарка">
-        <AvatarSettings key={src ?? "none"} userId={userId} name={user.name} src={src} />
+        <AvatarSettings key={src ?? "none"} id={user.reviewerId ?? userId} name={user.reviewerName ?? user.name} src={src} />
       </Section>
       <Section title="Профиль">
-        <ProfileForm name={user.name} email={user.email} />
+        <ProfileForm
+          name={user.name}
+          email={user.email}
+          reviewer={user.reviewerId ? { id: user.reviewerId, name: user.reviewerName ?? user.name } : null}
+        />
       </Section>
       <Section title="Пароль">
         <PasswordForm />

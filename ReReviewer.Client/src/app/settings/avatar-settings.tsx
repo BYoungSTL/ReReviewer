@@ -14,7 +14,8 @@ type Picked = { blob: Blob; preview: string };
 // Выбранная картинка обрезается до квадрата по центру и уменьшается до 256×256 прямо в браузере:
 // на сервер уходит несколько десятков килобайт, а API проверяет, что это действительно картинка.
 // После сохранения страница передаёт новый src, и key пересоздаёт компонент — превью и состояние сбрасываются.
-export function AvatarSettings({ userId, name, src }: { userId: string; name: string; src: string | null }) {
+// id — по нему выбирается цвет инициалов: у аккаунта, привязанного к профилю обзорщика, это Id профиля, как на его странице.
+export function AvatarSettings({ id, name, src }: { id: string; name: string; src: string | null }) {
   const [uploadState, upload, uploading] = useActionState(uploadAvatar, undefined);
   const [removeState, remove, removing] = useActionState(removeAvatar, undefined);
   const [picked, setPicked] = useState<Picked | null>(null);
@@ -48,7 +49,7 @@ export function AvatarSettings({ userId, name, src }: { userId: string; name: st
         {picked
           // eslint-disable-next-line @next/next/no-img-element -- превью из data: URL, оптимизатору нечего делать
           ? <img src={picked.preview} alt="Новая аватарка" className="size-20 rounded-full object-cover sm:size-22" />
-          : <Avatar id={userId} name={name} src={src} size="lg" />}
+          : <Avatar id={id} name={name} src={src} size="lg" />}
         <div className="flex flex-wrap gap-2">
           <label className={cn(buttonVariants({ variant: "outline" }), "cursor-pointer focus-within:ring-3 focus-within:ring-ring/50")}>
             {picked || src ? "Выбрать другую" : "Выбрать картинку"}

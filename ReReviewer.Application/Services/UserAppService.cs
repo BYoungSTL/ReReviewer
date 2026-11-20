@@ -188,6 +188,7 @@ public class UserAppService(IUserService userService, IRoleService roleService) 
                 .Select(r => new RoleViewModel { Id = r.Id, Title = r.Title })
                 .ToList(),
             ReviewerId = user.Reviewer?.Id,
+            ReviewerName = user.Reviewer?.FullName,
             CreatedAt = user.CreatedAt,
             BlockedAt = user.BlockedAt,
             AvatarUpdatedAt = user.AvatarUpdatedAt
@@ -197,7 +198,8 @@ public class UserAppService(IUserService userService, IRoleService roleService) 
         new()
         {
             Id = user.Id,
-            Name = user.Name,
+            // Привязанный аккаунт виден на сайте под именем своего профиля обзорщика.
+            Name = user.Reviewer?.FullName ?? user.Name,
             AvatarUpdatedAt = user.AvatarUpdatedAt,
             ReviewerId = user.Reviewer?.Id,
             CreatedAt = user.CreatedAt

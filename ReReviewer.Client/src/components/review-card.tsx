@@ -10,6 +10,7 @@ import { SCORE_TEXT, scoreTone } from "@/lib/score";
 
 // Отзыв пользователя об обзорщике. На странице обзорщика ссылка на него не нужна (showReviewer = false),
 // в «Моих отзывах» — нужна. У своего отзыва (own) видны статус модерации и ссылка на правку.
+// Автор с подтверждённым профилем обзорщика — это и есть его профиль: API отдаёт имя профиля, а имя ведёт на профиль.
 // meta дописывается в строку с датой, children — под отзывом (например, кнопки модерации).
 export function ReviewCard({ review, showReviewer = false, own = false, meta, children }: {
   review: ReviewViewModel;
@@ -24,12 +25,16 @@ export function ReviewCard({ review, showReviewer = false, own = false, meta, ch
         <div className="flex min-w-0 items-center gap-3">
           {showReviewer
             ? <Avatar id={review.reviewerId} name={review.reviewerName ?? ""} size="sm" />
-            : <Avatar id={review.userId} name={review.userName ?? ""} src={avatarUrl(review.userId, review.userAvatarUpdatedAt)} size="sm" />}
+            : <Avatar id={review.userReviewerId ?? review.userId} name={review.userName ?? ""} src={avatarUrl(review.userId, review.userAvatarUpdatedAt)} size="sm" />}
           <div className="min-w-0">
             <div className="font-bold">
               {showReviewer ? (
                 <Link href={`/reviewers/${review.reviewerId}`} className="hover:underline">
                   {review.reviewerName}
+                </Link>
+              ) : review.userReviewerId ? (
+                <Link href={`/reviewers/${review.userReviewerId}`} className="hover:underline">
+                  {review.userName}
                 </Link>
               ) : review.userName}
             </div>

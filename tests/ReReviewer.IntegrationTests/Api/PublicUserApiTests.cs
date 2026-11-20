@@ -10,10 +10,12 @@ namespace ReReviewer.IntegrationTests.Api;
 [Collection(ApiCollection.Name)]
 public class PublicUserApiTests(ApiFixture api)
 {
+    // Привязанный аккаунт виден под именем своего профиля обзорщика, а не под именем аккаунта.
     [Fact]
-    public async Task Profile_ShowsNameAndLinkedReviewer_WithoutPrivateData()
+    public async Task Profile_ShowsReviewerNameAndLinkedReviewer_WithoutPrivateData()
     {
-        var reviewerId = await CreateAsync("api/reviewers", new { fullName = TestData.Unique("Reviewer"), genres = new[] { new { id = int.Parse(await GenreAsync()) } } });
+        var reviewerName = TestData.Unique("Reviewer");
+        var reviewerId = await CreateAsync("api/reviewers", new { fullName = reviewerName, genres = new[] { new { id = int.Parse(await GenreAsync()) } } });
         var (userId, _) = await RegisterAsync("Публичный автор");
         using (var moderator = api.CreateClient(ApiFixture.Moderator))
             (await moderator.PostAsync($"api/reviewers/{reviewerId}/validate/{userId}", null)).EnsureSuccessStatusCode();
@@ -22,13 +24,25 @@ public class PublicUserApiTests(ApiFixture api)
         var profile = await anonymous.GetFromJsonAsync<JsonElement>($"api/users/{userId}/profile");
 
         profile.GetProperty("id").GetString().ShouldBe(userId);
-        profile.GetProperty("name").GetString().ShouldBe("Публичный автор");
+        profile.GetProperty("name").GetString().ShouldBe(reviewerName);
         profile.GetProperty("reviewerId").GetString().ShouldBe(reviewerId);
         profile.GetProperty("avatarUpdatedAt").ValueKind.ShouldBe(JsonValueKind.Null);
         profile.GetProperty("createdAt").GetString().ShouldEndWith("Z");
         profile.TryGetProperty("email", out _).ShouldBeFalse();
         profile.TryGetProperty("roles", out _).ShouldBeFalse();
         profile.TryGetProperty("blockedAt", out _).ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task Profile_UnlinkedUser_ShowsAccountName()
+    {
+        var (userId, _) = await RegisterAsync("Просто читатель");
+        using var anonymous = api.CreateClient(ApiFixture.Anonymous);
+
+        var profile = await anonymous.GetFromJsonAsync<JsonElement>($"api/users/{userId}/profile");
+
+        profile.GetProperty("name").GetString().ShouldBe("Просто читатель");
+        profile.GetProperty("reviewerId").ValueKind.ShouldBe(JsonValueKind.Null);
     }
 
     [Fact]

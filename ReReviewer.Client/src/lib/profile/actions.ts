@@ -4,11 +4,13 @@ import { updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { userApi } from "@/lib/api/client";
 import { API_UNAVAILABLE, problemMessage } from "@/lib/api/errors";
-import { reviewerTag } from "@/lib/api/public";
+import { REVIEWS_TAG, reviewerTag, userTag } from "@/lib/api/public";
 import type { ReviewerProfileViewModel } from "@/lib/api/schema";
+import { saveToken } from "@/lib/auth/session";
 
 // Профиль обзорщика, который правит сам владелец подтверждённого аккаунта. Какой профиль менять, API решает
-// по токену, поэтому Id из браузера здесь не нужен.
+// по токену, поэтому Id из браузера здесь не нужен. Аккаунт и профиль — одно лицо: имя профиля — это и имя
+// пользователя на сайте (в шапке и у его отзывов).
 
 export type ReviewerProfileState = { error?: string; success?: string } | undefined;
 
@@ -74,6 +76,24 @@ export async function updateReviewerProfile(_state: ReviewerProfileState, form: 
   // Профиль и список обзорщиков на главной (имя, жанры, издание) показывают новое сразу.
   if (result.data.id) updateTag(reviewerTag(result.data.id));
   updateTag("reviewers");
+  await refreshIdentity();
 
   return { success: "Профиль сохранён." };
+}
+
+// Шапка берёт имя из токена, поэтому он перевыпускается. Под новым именем видны и отзывы владельца у других
+// обзорщиков: у каких — здесь неизвестно, поэтому сбрасываются все отзывы. Переименования редки.
+async function refreshIdentity() {
+  updateTag(REVIEWS_TAG);
+
+  try {
+    const api = await userApi();
+    const { data } = await api.POST("/api/auth/refresh");
+    if (!data) return;
+
+    await saveToken(data.token, data.expiresAt);
+    if (data.user.id) updateTag(userTag(data.user.id));
+  } catch {
+    // Профиль уже сохранён, а шапка покажет новое имя после следующего входа.
+  }
 }

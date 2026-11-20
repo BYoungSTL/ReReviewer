@@ -4,12 +4,13 @@ import { updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { userApi } from "@/lib/api/client";
 import { API_UNAVAILABLE, problemMessage } from "@/lib/api/errors";
-import { userTag } from "@/lib/api/public";
+import { reviewerTag, userTag } from "@/lib/api/public";
 import { saveToken } from "@/lib/auth/session";
 
 // Настройки своего профиля. Каждое изменение API подтверждает новым токеном: в нём имя, почта и версия аватарки,
 // которые показывает шапка. Токен сохраняется в cookie, и Next.js сам перерисовывает страницу.
-// Имя и аватарка видны и на публичной странице пользователя, поэтому сбрасывается и её кэш.
+// Имя и аватарка видны и на публичной странице пользователя, поэтому сбрасывается и её кэш. У аккаунта, привязанного
+// к профилю обзорщика, аватарка — это аватарка профиля: сбрасываются и профиль, и список обзорщиков на главной.
 
 export type SettingsState = {
   error?: string;
@@ -82,7 +83,7 @@ export async function removeAvatar(): Promise<SettingsState> {
 }
 
 type TokenResult = {
-  data?: { token: string; expiresAt: string; user: { id: string | null } };
+  data?: { token: string; expiresAt: string; user: { id: string | null; reviewerId: string | null } };
   error?: unknown;
   response: Response;
 };
@@ -106,6 +107,10 @@ async function send(fallback: string, request: (api: Awaited<ReturnType<typeof u
 
   await saveToken(result.data.token, result.data.expiresAt);
   if (result.data.user.id) updateTag(userTag(result.data.user.id));
+  if (result.data.user.reviewerId) {
+    updateTag(reviewerTag(result.data.user.reviewerId));
+    updateTag("reviewers");
+  }
 }
 
 const text = (form: FormData, name: string) =>

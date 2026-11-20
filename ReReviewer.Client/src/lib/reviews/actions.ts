@@ -79,6 +79,7 @@ async function saveReview(
       criterionTitle: null,
     })),
     userName: null,
+    userReviewerId: null,
     userAvatarUpdatedAt: null,
     reviewerName: null,
     status: null,

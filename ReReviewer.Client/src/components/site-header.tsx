@@ -1,3 +1,4 @@
+import { Settings } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 import { Avatar } from "@/components/avatar";
@@ -51,15 +52,22 @@ async function UserMenu() {
       <Link href="/me" className={buttonVariants({ variant: "ghost", size: "sm" })}>
         Мои отзывы
       </Link>
-      {/* Имя и аватарка берутся из токена: после изменений в настройках он перевыпускается, и шапка обновляется. */}
+      {/* Имя и аватарка берутся из токена: после изменений в настройках он перевыпускается, и шапка обновляется.
+          Аккаунт, привязанный к профилю обзорщика, и есть этот профиль: имя ведёт на него, настройки — отдельной кнопкой.
+          Цвет инициалов — по Id профиля, как на странице обзорщика. */}
       <Link
-        href="/settings"
-        aria-label={`Настройки профиля: ${user.name}`}
+        href={user.reviewerId ? `/reviewers/${user.reviewerId}` : "/settings"}
+        aria-label={user.reviewerId ? `Ваш профиль: ${user.name}` : `Настройки профиля: ${user.name}`}
         className="flex min-h-9 items-center gap-2 rounded-full pr-1 text-sm text-muted-foreground hover:text-foreground"
       >
-        <Avatar id={user.id} name={user.name} src={avatarUrl(user.id, user.avatar)} size="xs" />
+        <Avatar id={user.reviewerId ?? user.id} name={user.name} src={avatarUrl(user.id, user.avatar)} size="xs" />
         <span className="hidden sm:inline">{user.name}</span>
       </Link>
+      {user.reviewerId && (
+        <Link href="/settings" aria-label="Настройки" title="Настройки" className={buttonVariants({ variant: "ghost", size: "icon-sm" })}>
+          <Settings aria-hidden="true" className="size-4" />
+        </Link>
+      )}
       <LogoutButton />
     </nav>
   );

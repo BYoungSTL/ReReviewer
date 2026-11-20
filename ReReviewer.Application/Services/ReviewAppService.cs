@@ -149,7 +149,8 @@ public class ReviewAppService(IReviewService reviewService) : IReviewAppService
                     CriterionTitle = s.Criterion.Title
                 })
                 .ToList(),
-            UserName = review.User.Name,
+            UserName = review.User.Reviewer?.FullName ?? review.User.Name,
+            UserReviewerId = review.User.Reviewer?.Id,
             UserAvatarUpdatedAt = review.User.AvatarUpdatedAt,
             ReviewerName = review.Reviewer.FullName,
             Status = review.Status.ToString(),
