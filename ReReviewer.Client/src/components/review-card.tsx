@@ -5,13 +5,15 @@ import { ScoreBadge } from "@/components/score-badge";
 import { buttonVariants } from "@/components/ui/button";
 import type { ReviewViewModel } from "@/lib/api/schema";
 import { avatarUrl } from "@/lib/avatar";
-import { formatDate, formatPercent, reviewStatusLabel } from "@/lib/format";
+import { formatDate, formatPercent, materialFormatLabel, reviewStatusLabel } from "@/lib/format";
 import { SCORE_TEXT, scoreTone } from "@/lib/score";
 
 // Отзыв пользователя об обзорщике. На странице обзорщика ссылка на него не нужна (showReviewer = false),
 // в «Моих отзывах» — нужна. У своего отзыва (own) видны статус модерации и ссылка на правку.
 // Автор с подтверждённым профилем обзорщика — это и есть его профиль: API отдаёт имя профиля, а имя ведёт на профиль.
 // meta дописывается в строку с датой, children — под отзывом (например, кнопки модерации).
+// Новые материалы из отзыва видны, пока отзыв не опубликован (автору и модератору): при одобрении отзыва они
+// становятся материалами обзорщика и попадают в обычный список материалов отзыва.
 export function ReviewCard({ review, showReviewer = false, own = false, meta, children }: {
   review: ReviewViewModel;
   showReviewer?: boolean;
@@ -74,6 +76,32 @@ export function ReviewCard({ review, showReviewer = false, own = false, meta, ch
             </span>
           ))}
         </p>
+      )}
+
+      {review.status !== "Published" && review.newMaterials.length > 0 && (
+        <div className="flex flex-col gap-1 text-sm">
+          <p className="text-muted-foreground">
+            {review.status === "Rejected"
+              ? "Новые материалы отклонены вместе с отзывом:"
+              : "Новые материалы — появятся у обзорщика, когда отзыв одобрят:"}
+          </p>
+          <ul className="flex flex-col gap-1">
+            {review.newMaterials.map((material) => (
+              <li key={material.url} className="flex flex-col">
+                <a href={material.url} target="_blank" rel="noopener noreferrer nofollow" className="self-start break-all text-primary underline-offset-4 hover:underline">
+                  {material.title}
+                </a>
+                <span className="text-muted-foreground">
+                  {[
+                    material.gameTitle,
+                    materialFormatLabel(material.format),
+                    material.publishedAt && formatDate(material.publishedAt),
+                  ].filter(Boolean).join(" · ")}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
 
       {own && (

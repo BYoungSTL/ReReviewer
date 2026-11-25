@@ -29,6 +29,7 @@ public class ReReviewerDbContext : DbContext
     public DbSet<ReviewerClaim> ReviewerClaims => Set<ReviewerClaim>();
     public DbSet<UserAvatar> UserAvatars => Set<UserAvatar>();
     public DbSet<BadgeNomination> BadgeNominations => Set<BadgeNomination>();
+    public DbSet<MaterialSuggestion> MaterialSuggestions => Set<MaterialSuggestion>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -51,6 +52,7 @@ public class ReReviewerDbContext : DbContext
         ReviewerClaimConfiguration(modelBuilder.Entity<ReviewerClaim>());
         UserAvatarConfiguration(modelBuilder.Entity<UserAvatar>());
         BadgeNominationConfiguration(modelBuilder.Entity<BadgeNomination>());
+        MaterialSuggestionConfiguration(modelBuilder.Entity<MaterialSuggestion>());
     }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
@@ -394,6 +396,48 @@ public class ReReviewerDbContext : DbContext
             .WithMany()
             .HasForeignKey(e => e.BadgeId)
             .OnDelete(DeleteBehavior.Cascade);
+    }
+
+    // Заявка удаляется вместе с автором, обзорщиком или игрой. Поля — как у материала (Materials).
+    private void MaterialSuggestionConfiguration(EntityTypeBuilder<MaterialSuggestion> builder)
+    {
+        builder.HasKey(e => e.Id);
+
+        builder.Property(e => e.Id).IsRequired();
+        builder.Property(e => e.Title).IsRequired().HasMaxLength(250);
+        builder.Property(e => e.Url).IsRequired().HasMaxLength(800);
+        builder.Property(e => e.Format).IsRequired().HasConversion<string>().HasMaxLength(20);
+        builder.Property(e => e.Status).IsRequired().HasConversion<string>().HasMaxLength(20);
+        builder.Property(e => e.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+
+        builder.HasIndex(e => new { e.Status, e.CreatedAt });
+
+        builder
+            .HasOne(e => e.User)
+            .WithMany()
+            .HasForeignKey(e => e.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder
+            .HasOne(e => e.Reviewer)
+            .WithMany()
+            .HasForeignKey(e => e.ReviewerId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder
+            .HasOne(e => e.Game)
+            .WithMany()
+            .HasForeignKey(e => e.GameId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Без каскада в базе: SQL Server не даст второй путь Users → Reviews → MaterialSuggestions рядом с прямым
+        // Users → MaterialSuggestions. Заявки автора и так удаляются вместе с ним, а при удалении самого отзыва
+        // ReviewService удаляет его заявки сам.
+        builder
+            .HasOne(e => e.Review)
+            .WithMany(e => e.MaterialSuggestions)
+            .HasForeignKey(e => e.ReviewId)
+            .OnDelete(DeleteBehavior.NoAction);
     }
     #endregion
 }

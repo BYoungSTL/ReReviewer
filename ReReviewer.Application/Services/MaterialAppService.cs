@@ -101,17 +101,11 @@ public class MaterialAppService(
             OutletId = material.OutletId,
             Title = InputValidation.RequiredText(material.Title, "Material title"),
             Url = InputValidation.RequiredText(material.Url, "Material url"),
-            Format = ParseFormat(material.Format),
+            Format = InputValidation.ParseMaterialFormat(material.Format),
             OriginalScore = material.OriginalScore,
             PublishedAt = material.PublishedAt
         };
     }
-
-    private static MaterialFormat ParseFormat(string format) =>
-        Enum.TryParse<MaterialFormat>(format, ignoreCase: true, out var parsed) && Enum.IsDefined(parsed)
-            ? parsed
-            : throw new ValidationException(
-                $"Unknown material format '{format}'. Allowed: {string.Join(", ", Enum.GetNames<MaterialFormat>())}.");
 
     // Новые сверху: по дате публикации, затем по дате добавления на сайт.
     private static List<MaterialViewModel> ToViewModels(IEnumerable<Material> materials) =>

@@ -255,6 +255,73 @@ namespace ReReviewer.Data.Migrations
                         });
                 });
 
+            modelBuilder.Entity("ReReviewer.Data.Entities.MaterialSuggestion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<DateTime?>("DecidedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Format")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<Guid>("GameId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("MaterialId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateOnly?>("PublishedAt")
+                        .HasColumnType("date");
+
+                    b.Property<Guid?>("ReviewId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ReviewerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasMaxLength(800)
+                        .HasColumnType("nvarchar(800)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GameId");
+
+                    b.HasIndex("ReviewId");
+
+                    b.HasIndex("ReviewerId");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("Status", "CreatedAt");
+
+                    b.ToTable("MaterialSuggestions");
+                });
+
             modelBuilder.Entity("ReReviewer.Data.Entities.Outlet", b =>
                 {
                     b.Property<Guid>("Id")
@@ -714,6 +781,40 @@ namespace ReReviewer.Data.Migrations
                     b.Navigation("Reviewer");
                 });
 
+            modelBuilder.Entity("ReReviewer.Data.Entities.MaterialSuggestion", b =>
+                {
+                    b.HasOne("ReReviewer.Data.Entities.Game", "Game")
+                        .WithMany()
+                        .HasForeignKey("GameId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ReReviewer.Data.Entities.Review", "Review")
+                        .WithMany("MaterialSuggestions")
+                        .HasForeignKey("ReviewId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("ReReviewer.Data.Entities.Reviewer", "Reviewer")
+                        .WithMany()
+                        .HasForeignKey("ReviewerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("ReReviewer.Data.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Game");
+
+                    b.Navigation("Review");
+
+                    b.Navigation("Reviewer");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("ReReviewer.Data.Entities.Review", b =>
                 {
                     b.HasOne("ReReviewer.Data.Entities.Reviewer", "Reviewer")
@@ -879,6 +980,8 @@ namespace ReReviewer.Data.Migrations
             modelBuilder.Entity("ReReviewer.Data.Entities.Review", b =>
                 {
                     b.Navigation("CriterionScores");
+
+                    b.Navigation("MaterialSuggestions");
                 });
 
             modelBuilder.Entity("ReReviewer.Data.Entities.Reviewer", b =>

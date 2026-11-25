@@ -24,5 +24,8 @@ public class Review : Entity<Guid>
     public virtual ICollection<Material> Materials { get; set; } = [];
 
     public virtual ICollection<ReviewCriterionScore> CriterionScores { get; set; } = [];
+
+    // Новые материалы, которые автор добавил в отзыв. Они проверяются вместе с отзывом (см. MaterialSuggestion).
+    public virtual ICollection<MaterialSuggestion> MaterialSuggestions { get; set; } = [];
     #endregion
 }

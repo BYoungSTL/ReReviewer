@@ -10,6 +10,7 @@ export function AdminNav({ showUsers }: { showUsers: boolean }) {
     { href: "/admin/reviews", label: "Отзывы" },
     { href: "/admin/reviewers", label: "Новые обзорщики" },
     { href: "/admin/claims", label: "Привязка профилей" },
+    { href: "/admin/materials", label: "Материалы" },
     { href: "/admin/badges", label: "Знаки" },
     ...(showUsers ? [{ href: "/admin/users", label: "Пользователи" }] : []),
   ] as const;

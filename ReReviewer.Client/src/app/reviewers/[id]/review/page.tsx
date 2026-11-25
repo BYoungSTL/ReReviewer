@@ -6,7 +6,7 @@ import { ReviewCard } from "@/components/review-card";
 import { ReviewForm } from "@/components/review-form";
 import { buttonVariants } from "@/components/ui/button";
 import { failed, userApi } from "@/lib/api/client";
-import { getCriteria, getReviewer, getReviewerMaterials, isGuid } from "@/lib/api/public";
+import { getCriteria, getGameOptions, getReviewer, getReviewerMaterials, isGuid } from "@/lib/api/public";
 import { getCurrentUser } from "@/lib/auth/session";
 import { createReview } from "@/lib/reviews/actions";
 
@@ -27,9 +27,10 @@ async function NewReview({ params }: Pick<PageProps<"/reviewers/[id]/review">, "
   const { id } = await params;
   if (!isGuid(id)) notFound();
 
-  const [reviewer, materials, criteria] = await Promise.all([
+  const [reviewer, materials, games, criteria] = await Promise.all([
     getReviewer(id),
     getReviewerMaterials(id),
+    getGameOptions(),
     getCriteria(),
   ]);
   if (!reviewer) notFound();
@@ -75,6 +76,7 @@ async function NewReview({ params }: Pick<PageProps<"/reviewers/[id]/review">, "
           key={user?.id}
           action={createReview.bind(null, id)}
           materials={materials}
+          games={games}
           criteria={criteria}
           submitLabel="Отправить отзыв"
           pendingLabel="Отправляем…"

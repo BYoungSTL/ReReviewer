@@ -60,6 +60,12 @@ BEGIN TRANSACTION;
 -- обзорщика, у которого есть отзывы или материалы, и игру, у которой есть материалы.
 -----------------------------------------------------------------------------------------------
 
+-- Новые материалы из этих отзывов: у связи заявки с отзывом нет каскада в базе, поэтому — до отзывов.
+DELETE s FROM MaterialSuggestions s
+JOIN Reviews r ON r.Id = s.ReviewId
+WHERE r.ReviewerId IN (SELECT Id FROM @testReviewers)
+   OR r.UserId IN (SELECT Id FROM @testUsers);
+
 -- Баллы по критериям и ссылки на материалы удаляются вместе с отзывами каскадом.
 DELETE FROM Reviews
 WHERE ReviewerId IN (SELECT Id FROM @testReviewers)
@@ -70,7 +76,7 @@ DELETE FROM Materials
 WHERE ReviewerId IN (SELECT Id FROM @testReviewers);
 SET @materials = @@ROWCOUNT;
 
--- Жанры, издания, бейджи обзорщиков и номинации на знаки удаляются каскадом.
+-- Жанры, издания, бейджи обзорщиков, номинации на знаки и заявки на материалы удаляются каскадом.
 DELETE FROM Reviewers
 WHERE Id IN (SELECT Id FROM @testReviewers);
 SET @reviewers = @@ROWCOUNT;
@@ -80,14 +86,16 @@ DELETE FROM Outlets
 WHERE Id IN (SELECT Id FROM @testOutlets);
 SET @outlets = @@ROWCOUNT;
 
+-- Игра остаётся, если на неё ссылается ваш материал или ваша заявка на материал (тестовые уже удалены с обзорщиками).
 DELETE g FROM Games g
 WHERE g.Id IN (SELECT Id FROM @testGames)
-  AND NOT EXISTS (SELECT 1 FROM Materials m WHERE m.GameId = g.Id);
+  AND NOT EXISTS (SELECT 1 FROM Materials m WHERE m.GameId = g.Id)
+  AND NOT EXISTS (SELECT 1 FROM MaterialSuggestions s WHERE s.GameId = g.Id);
 SET @games = @@ROWCOUNT;
 
 SET @keptGames = (SELECT COUNT(*) FROM Games WHERE Id IN (SELECT Id FROM @testGames));
 
--- Роли и номинации пользователей удаляются каскадом; если к тестовому аккаунту был привязан ваш обзорщик, привязка сбрасывается.
+-- Роли, номинации и заявки на материалы пользователей удаляются каскадом; если к тестовому аккаунту был привязан ваш обзорщик, привязка сбрасывается.
 DELETE FROM Users
 WHERE Id IN (SELECT Id FROM @testUsers);
 SET @users = @@ROWCOUNT;

@@ -72,10 +72,14 @@ async function MyReviews() {
   );
 }
 
-// Заявки на новых обзорщиков и запросы на привязку профиля — с решением модератора. Раздела нет, пока заявок нет.
+// Заявки на новых обзорщиков и материалы, запросы на привязку профиля — с решением модератора. Раздела нет, пока заявок нет.
 async function MyRequests() {
   const api = await userApi();
-  const [suggestions, claims] = await Promise.all([api.GET("/api/suggestions/my"), api.GET("/api/claims/my")]);
+  const [suggestions, claims, materials] = await Promise.all([
+    api.GET("/api/suggestions/my"),
+    api.GET("/api/claims/my"),
+    api.GET("/api/materialsuggestions/my"),
+  ]);
   // Просроченный токен уже обработал MyReviews.
   if (suggestions.response.status === 401) return null;
   const items = [
@@ -92,6 +96,13 @@ async function MyRequests() {
       status: c.status,
       title: <>Привязка профиля: {c.reviewerName}</>,
       link: `/reviewers/${c.reviewerId}`,
+    })),
+    ...(materials.data ?? failed(materials.response)).map((m) => ({
+      id: m.id,
+      createdAt: m.createdAt,
+      status: m.status,
+      title: <>Материал «{m.title}» обзорщика {m.reviewerName}</>,
+      link: `/reviewers/${m.reviewerId}`,
     })),
   ].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
