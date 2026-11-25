@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { NewMaterialsField } from "@/components/new-materials-field";
 import { PercentSlider } from "@/components/percent-slider";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -14,10 +15,12 @@ import { CRITERION_FIELD, REQUIRED_CRITERION_FIELD } from "@/lib/reviews/criteri
 const SCORES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
 // Форма нового отзыва и правки своего. Обязательны оценка, текст и все критерии — процентом от 0 до 100.
-// Материалы — по желанию: без них отзыв говорит о работе обзорщика в целом.
-export function ReviewForm({ action, materials, criteria, initialValues, submitLabel, pendingLabel, hint }: {
+// Материалы — по желанию: без них отзыв говорит о работе обзорщика в целом. Материал, которого у обзорщика ещё нет,
+// добавляется прямо в отзыв: модератор проверит его вместе с отзывом и при одобрении добавит обзорщику.
+export function ReviewForm({ action, materials, games, criteria, initialValues, submitLabel, pendingLabel, hint }: {
   action: (state: ReviewFormState, form: FormData) => Promise<ReviewFormState>;
   materials: MaterialViewModel[];
+  games: { id: string; title: string }[];
   criteria: CriterionViewModel[];
   initialValues?: ReviewFormValues;
   submitLabel: string;
@@ -97,10 +100,10 @@ export function ReviewForm({ action, materials, criteria, initialValues, submitL
         </fieldset>
       )}
 
-      {materials.length > 0 && (
-        <fieldset className="flex flex-col gap-3">
-          <legend className="text-sm font-medium">О каких материалах отзыв</legend>
-          <p className="text-sm text-muted-foreground">Необязательно: можно писать о работе обзорщика в целом.</p>
+      <fieldset className="flex flex-col gap-3">
+        <legend className="text-sm font-medium">О каких материалах отзыв</legend>
+        <p className="text-sm text-muted-foreground">Необязательно: можно писать о работе обзорщика в целом.</p>
+        {materials.length > 0 && (
           <ul className="flex max-h-72 flex-col gap-1 overflow-y-auto">
             {materials.map((material) => (
               <li key={material.id}>
@@ -127,8 +130,19 @@ export function ReviewForm({ action, materials, criteria, initialValues, submitL
               </li>
             ))}
           </ul>
-        </fieldset>
-      )}
+        )}
+        {games.length > 0 && (
+          <>
+            <p className="text-sm text-muted-foreground">
+              {materials.length > 0 ? "Нужного материала нет в списке?" : "Материалов у обзорщика пока нет."}{" "}
+              Добавьте его здесь — модератор проверит материал вместе с отзывом, и после одобрения он появится
+              на странице обзорщика.
+            </p>
+            {/* После ошибки блок создаётся заново с присланными значениями (см. NewMaterialsField). */}
+            <NewMaterialsField key={JSON.stringify(values?.newMaterials ?? [])} games={games} initial={values?.newMaterials ?? []} />
+          </>
+        )}
+      </fieldset>
 
       <div className="flex flex-col gap-2">
         <Button type="submit" size="lg" disabled={pending} className="self-start px-4">

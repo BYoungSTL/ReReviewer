@@ -96,6 +96,26 @@ export async function getBadges() {
   return data ?? failed(response);
 }
 
+// Игры, к которым можно предложить материал обзорщика. Каталог меняют только через API.
+export async function getGames() {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag("games");
+
+  const { data, response } = await publicApi.GET("/api/games");
+
+  return data ?? failed(response);
+}
+
+// Игры для выпадающих списков форм: по алфавиту, только с Id.
+export async function getGameOptions() {
+  const games = await getGames();
+
+  return games
+    .flatMap((game) => (game.id === null ? [] : [{ id: game.id, title: game.title }]))
+    .sort((a, b) => a.title.localeCompare(b.title, "ru"));
+}
+
 export async function getGenres() {
   "use cache";
   cacheLife("minutes");

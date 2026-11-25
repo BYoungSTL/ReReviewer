@@ -28,7 +28,8 @@ export async function moderateReview(
       ? await api.POST("/api/reviews/{id}/approve", params)
       : await api.POST("/api/reviews/{id}/reject", params);
 
-    // Одобренный отзыв появляется на страницах обзорщика и автора и меняет рейтинг. Отклонённый там и не был виден.
+    // Одобренный отзыв появляется на страницах обзорщика и автора и меняет рейтинг, а новые материалы из него
+    // появляются у обзорщика (они в том же кэше обзорщика). Отклонённый отзыв там и не был виден.
     if (approve && result.response.ok) {
       updateTag(reviewerTag(reviewerId));
       updateTag(userTag(userId));
@@ -88,6 +89,28 @@ export async function moderateClaim(
       updateTag("reviewers");
       updateTag(userTag(userId));
     }
+
+    return result;
+  });
+}
+
+// Одобренная заявка создаёт материал: он сразу появляется на странице обзорщика и в форме отзыва о нём.
+export async function moderateMaterialSuggestion(
+  suggestionId: string,
+  reviewerId: string,
+  _state: AdminActionState,
+  form: FormData,
+): Promise<AdminActionState> {
+  const approve = form.get("decision") === "approve";
+
+  return run("/admin/materials", "Не удалось сохранить решение.", async () => {
+    const api = await userApi();
+    const params = { params: { path: { id: suggestionId } } };
+    const result = approve
+      ? await api.POST("/api/materialsuggestions/{id}/approve", params)
+      : await api.POST("/api/materialsuggestions/{id}/reject", params);
+
+    if (approve && result.response.ok) updateTag(reviewerTag(reviewerId));
 
     return result;
   });

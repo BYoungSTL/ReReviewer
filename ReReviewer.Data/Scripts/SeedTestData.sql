@@ -220,6 +220,12 @@ INSERT INTO BadgeNominations (Id, UserId, ReviewerId, BadgeId, CreatedAt) VALUES
     (NEWID(), @uDmitry, @rSergey, @bObjective,  '2026-10-22T08:05:00'),
     (NEWID(), @uOlga,   @rKate,   @bDeep,       '2026-10-24T21:30:00');
 
+-- Материалы, которые предложили читатели: две заявки ждут модератора на /admin/materials, одна отклонена.
+INSERT INTO MaterialSuggestions (Id, UserId, ReviewerId, GameId, Title, Url, Format, PublishedAt, Status, CreatedAt, DecidedAt) VALUES
+    (NEWID(), @uMaria, @rKate,   @gmRe4,   N'Resident Evil 4: ремейк за двадцать минут', N'https://example.com/kate/re4-remake-in-20-minutes', N'Video',   '2023-04-02', N'Pending',  '2026-10-26T19:20:00', NULL),
+    (NEWID(), @uAlex,  @rNikita, @gmHades, N'Hades: почему в неё возвращаешься',         N'https://example.com/nikita/why-hades-keeps-you',    N'Article', NULL,         N'Pending',  '2026-10-27T11:05:00', NULL),
+    (NEWID(), @uOlga,  @rSergey, @gmCiv6,  N'Civilization VI: тир-лист цивилизаций',     N'https://example.com/sergey/civ6-tier-list-stream',  N'Stream',  '2024-02-10', N'Rejected', '2026-10-12T08:40:00', '2026-10-13T10:00:00');
+
 -----------------------------------------------------------------------------------------------
 -- Материалы обзорщиков (OriginalScore — оценка игре по шкале 0–10, NULL — без оценки)
 -----------------------------------------------------------------------------------------------
@@ -306,6 +312,10 @@ INSERT INTO ReviewMaterials (ReviewsId, MaterialsId) VALUES
     (@v10, @m08),
     (@v11, @m14),
     (@v13, @m10);
+
+-- Новый материал, который автор добавил прямо в отзыв: решается вместе с отзывом @v12 (он на модерации).
+INSERT INTO MaterialSuggestions (Id, UserId, ReviewerId, GameId, ReviewId, Title, Url, Format, PublishedAt, Status, CreatedAt, DecidedAt) VALUES
+    (NEWID(), @uOlga, @rNikita, @gmHades, @v12, N'Hades: первый побег на стриме', N'https://example.com/nikita/hades-first-escape-stream', N'Stream', '2024-05-18', N'Pending', '2026-10-26T08:30:00', NULL);
 
 -- Оценка по критерию — процент от 0 до 100. Все четыре критерия обязательны в каждом отзыве.
 INSERT INTO ReviewCriterionScores (ReviewId, CriterionId, Score) VALUES

@@ -18,6 +18,10 @@ public class ReviewViewModel
     public List<ReviewMaterialViewModel> Materials { get; set; } = [];
     public List<ReviewCriterionScoreViewModel> CriterionScores { get; set; } = [];
 
+    // Материалы, которых у обзорщика ещё нет. Задаются списком целиком: при правке ждущие решения заменяются.
+    // Одобренные вместе с отзывом здесь не показываются — они уже в Materials.
+    public List<ReviewNewMaterialViewModel> NewMaterials { get; set; } = [];
+
     #region Только чтение
 
     // У автора с подтверждённым профилем обзорщика — имя профиля: аккаунт и профиль — одно лицо.

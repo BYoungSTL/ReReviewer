@@ -105,7 +105,7 @@ async function ReviewerProfile({ params, searchParams }: Pick<PageProps<"/review
         <RatingPanel rating={rating} />
 
         <div className="flex min-w-0 flex-[999_1_560px] flex-col gap-8">
-          {materials.length > 0 && <Materials materials={materials} />}
+          <Materials reviewerId={id} materials={materials} />
 
           {!isOwner && nominatable.length > 0 && (
             <section className="flex flex-col gap-3">
@@ -384,12 +384,22 @@ function Criteria({ criteria }: { criteria: ReviewerRatingViewModel["criteria"] 
   );
 }
 
-function Materials({ materials }: { materials: MaterialViewModel[] }) {
+// Материалы добавляют модераторы, а предложить новый может любой вошедший: он появится здесь после проверки.
+// Блок виден и без материалов — ради ссылки «Предложить материал». Гостя ссылка уведёт на вход (proxy.ts).
+function Materials({ reviewerId, materials }: { reviewerId: string; materials: MaterialViewModel[] }) {
   return (
     <section className="flex flex-col gap-3">
-      <h2 className="font-display text-xl font-bold">
-        Материалы <span className="font-medium text-muted-foreground">{materials.length}</span>
-      </h2>
+      <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <h2 className="font-display text-xl font-bold">
+          Материалы <span className="font-medium text-muted-foreground">{materials.length}</span>
+        </h2>
+        <Link href={`/reviewers/${reviewerId}/materials/new`} className="text-sm font-semibold text-primary underline-offset-4 hover:underline">
+          Предложить материал
+        </Link>
+      </div>
+      {materials.length === 0 && (
+        <p className="text-muted-foreground">Материалов пока нет. Знаете статью или видео этого обзорщика? Предложите их.</p>
+      )}
       <ul className="flex flex-col gap-2">
         {materials.map((material) => {
           const Icon = FORMAT_ICONS[material.format] ?? FileText;

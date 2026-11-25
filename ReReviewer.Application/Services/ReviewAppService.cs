@@ -149,6 +149,20 @@ public class ReviewAppService(IReviewService reviewService) : IReviewAppService
                     CriterionTitle = s.Criterion.Title
                 })
                 .ToList(),
+            NewMaterials = review.MaterialSuggestions
+                .Where(s => s.Status != RequestStatus.Approved)
+                .OrderBy(s => s.Title)
+                .Select(s => new ReviewNewMaterialViewModel
+                {
+                    GameId = s.GameId,
+                    Title = s.Title,
+                    Url = s.Url,
+                    Format = s.Format.ToString(),
+                    PublishedAt = s.PublishedAt,
+                    GameTitle = s.Game.Title,
+                    Status = s.Status.ToString()
+                })
+                .ToList(),
             UserName = review.User.Reviewer?.FullName ?? review.User.Name,
             UserReviewerId = review.User.Reviewer?.Id,
             UserAvatarUpdatedAt = review.User.AvatarUpdatedAt,
@@ -168,8 +182,18 @@ public class ReviewAppService(IReviewService reviewService) : IReviewAppService
             review.Text,
             review.Score,
             review.Materials.Select(m => m.Id).ToList(),
-            review.CriterionScores.ToDictionary(s => s.CriterionId, s => s.Score));
+            review.CriterionScores.ToDictionary(s => s.CriterionId, s => s.Score),
+            review.NewMaterials.Select(ToNewMaterialInput).ToList());
     }
+
+    // Игру, свободную ссылку и их количество проверяет ReviewService: ему нужна база.
+    private static NewMaterialInput ToNewMaterialInput(ReviewNewMaterialViewModel material) =>
+        new(
+            material.GameId,
+            InputValidation.MaterialTitle(material.Title),
+            InputValidation.MaterialUrl(material.Url),
+            InputValidation.ParseMaterialFormat(material.Format),
+            material.PublishedAt);
 
     private static (int Page, int PageSize) NormalizePage(int page, int pageSize) =>
         (Math.Max(page, 1), Math.Clamp(pageSize, 1, MaxPageSize));

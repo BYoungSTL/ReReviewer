@@ -21,6 +21,9 @@ public class ReviewService(ReReviewerDbContext context) : BaseService<Review, Gu
     private const byte MinCriterionScore = 0;
     private const byte MaxCriterionScore = 100;
 
+    // Новых материалов в одном отзыве — не больше этого: отзыв пишут о работе обзорщика, а не каталогизируют её.
+    private const int MaxNewMaterials = 5;
+
     #region Create / Edit / Delete
 
     public async Task<Review> CreateAsync(Guid userId, Guid reviewerId, ReviewInput input, CancellationToken cancellationToken = default)
@@ -42,10 +45,13 @@ public class ReviewService(ReReviewerDbContext context) : BaseService<Review, Gu
         foreach (var (criterionId, score) in input.CriterionScores)
             review.CriterionScores.Add(CreateScore(criterionId, score));
 
+        foreach (var material in input.NewMaterials ?? [])
+            review.MaterialSuggestions.Add(CreateSuggestion(userId, reviewerId, material));
+
         return await AddAsync(review, cancellationToken);
     }
 
-    // Materials и CriterionScores подгружаются лениво при первом обращении в Sync-методах.
+    // Materials, CriterionScores и MaterialSuggestions подгружаются лениво при первом обращении в Sync-методах.
     public async Task<Review> EditAsync(Guid reviewId, Guid userId, ReviewInput input, CancellationToken cancellationToken = default)
     {
         var review = await GetRequiredAsync(reviewId, cancellationToken);
@@ -61,6 +67,7 @@ public class ReviewService(ReReviewerDbContext context) : BaseService<Review, Gu
 
         await SyncMaterialsAsync(review, input.MaterialIds, cancellationToken);
         SyncCriterionScores(review, input.CriterionScores);
+        SyncNewMaterials(review, input.NewMaterials ?? []);
 
         await UpdateAsync(review, cancellationToken);
 
@@ -74,15 +81,35 @@ public class ReviewService(ReReviewerDbContext context) : BaseService<Review, Gu
         if (review.UserId != userId)
             throw new UnauthorizedAccessException("Only the author can delete this review.");
 
+        // Заявки отзыва база каскадом не удаляет (см. ReReviewerDbContext); созданные из них материалы остаются.
+        Context.MaterialSuggestions.RemoveRange(review.MaterialSuggestions.ToList());
         Set.Remove(review);
         await Context.SaveChangesAsync(cancellationToken);
     }
 
+    // Решение по отзыву — решение и по новым материалам из него, всё одним сохранением: одобренный отзыв создаёт
+    // материалы обзорщика и отмечает их в себе, отклонённый отклоняет заявки.
     public async Task SetStatusAsync(Guid reviewId, ReviewStatus status, CancellationToken cancellationToken = default)
     {
         var review = await GetRequiredAsync(reviewId, cancellationToken);
-
         review.Status = status;
+
+        var now = DateTime.UtcNow;
+        foreach (var suggestion in review.MaterialSuggestions.Where(s => s.Status == RequestStatus.Pending).ToList())
+        {
+            if (status == ReviewStatus.Published)
+            {
+                var material = await ApproveSuggestionAsync(suggestion, now, cancellationToken);
+                if (review.Materials.All(m => m.Id != material.Id))
+                    review.Materials.Add(material);
+            }
+            else if (status == ReviewStatus.Rejected)
+            {
+                suggestion.Status = RequestStatus.Rejected;
+                suggestion.DecidedAt = now;
+            }
+        }
+
         await Context.SaveChangesAsync(cancellationToken);
     }
 
@@ -247,6 +274,8 @@ public class ReviewService(ReReviewerDbContext context) : BaseService<Review, Gu
         if (review.Materials.Any(m => m.ReviewerId != review.ReviewerId))
             throw new ValidationException("A review can only reference materials of the reviewer it is about.");
 
+        await ValidateNewMaterialsAsync(review, cancellationToken);
+
         var alreadyReviewed = await Set.AnyAsync(
             r => r.UserId == review.UserId && r.ReviewerId == review.ReviewerId && r.Id != review.Id,
             cancellationToken);
@@ -293,6 +322,92 @@ public class ReviewService(ReReviewerDbContext context) : BaseService<Review, Gu
             else
                 review.CriterionScores.Add(CreateScore(criterionId, score));
         }
+    }
+
+    // Те же правила, что у отдельной заявки (MaterialSuggestionService): игра есть, ссылка не занята ни материалом,
+    // ни другой ждущей заявкой. Свои ждущие заявки отзыва при правке заменяются, поэтому они не мешают.
+    private async Task ValidateNewMaterialsAsync(Review review, CancellationToken cancellationToken)
+    {
+        var newMaterials = review.MaterialSuggestions.Where(s => s.Status == RequestStatus.Pending).ToList();
+        if (newMaterials.Count == 0)
+            return;
+
+        if (newMaterials.Count > MaxNewMaterials)
+            throw new ValidationException($"A review can add at most {MaxNewMaterials} new materials.");
+
+        var urls = newMaterials.Select(s => s.Url).ToList();
+        if (urls.Distinct(StringComparer.OrdinalIgnoreCase).Count() != urls.Count)
+            throw new ValidationException("Each new material must have its own link.");
+
+        var gameIds = newMaterials.Select(s => s.GameId).Distinct().ToList();
+        if (await Context.Games.CountAsync(g => gameIds.Contains(g.Id), cancellationToken) != gameIds.Count)
+            throw new KeyNotFoundException("Game not found.");
+
+        if (await Context.Materials.AnyAsync(m => urls.Contains(m.Url), cancellationToken))
+            throw new ValidationException("A material with this link already exists.");
+
+        var suggestedElsewhere = await Context.MaterialSuggestions.AnyAsync(
+            s => s.Status == RequestStatus.Pending && urls.Contains(s.Url) && s.ReviewId != review.Id,
+            cancellationToken);
+        if (suggestedElsewhere)
+            throw new ValidationException("This material has already been suggested and is waiting for moderation.");
+    }
+
+    // Новые материалы отзыва задаются списком целиком: неодобренные заявки (ждущие или отклонённые вместе с прошлой
+    // версией отзыва) заменяются присланными. Одобренные остаются: их материалы уже у обзорщика, а в отзыве их
+    // отмечают через MaterialIds. Заявку удаляем явно: просто убранная из коллекции стала бы отдельной (ReviewId = null).
+    private void SyncNewMaterials(Review review, IReadOnlyList<NewMaterialInput> newMaterials)
+    {
+        foreach (var replaced in review.MaterialSuggestions.Where(s => s.Status != RequestStatus.Approved).ToList())
+        {
+            review.MaterialSuggestions.Remove(replaced);
+            Context.MaterialSuggestions.Remove(replaced);
+        }
+
+        foreach (var material in newMaterials)
+            review.MaterialSuggestions.Add(CreateSuggestion(review.UserId, review.ReviewerId, material));
+    }
+
+    private MaterialSuggestion CreateSuggestion(Guid userId, Guid reviewerId, NewMaterialInput material) =>
+        Context.CreateProxy<MaterialSuggestion>(s =>
+        {
+            s.UserId = userId;
+            s.ReviewerId = reviewerId;
+            s.GameId = material.GameId;
+            s.Title = material.Title;
+            s.Url = material.Url;
+            s.Format = material.Format;
+            s.PublishedAt = material.PublishedAt;
+            s.Status = RequestStatus.Pending;
+        });
+
+    // Пока отзыв ждал, материал с этой ссылкой мог появиться (его добавил модератор или одобрили другую заявку).
+    // Если он этого же обзорщика, отзыв просто отмечает его; материал чужого обзорщика — ошибка.
+    private async Task<Material> ApproveSuggestionAsync(MaterialSuggestion suggestion, DateTime now, CancellationToken cancellationToken)
+    {
+        var material = await Context.Materials.FirstOrDefaultAsync(m => m.Url == suggestion.Url, cancellationToken);
+        if (material is not null && material.ReviewerId != suggestion.ReviewerId)
+            throw new ValidationException("A material with this link already exists.");
+
+        if (material is null)
+        {
+            material = Context.CreateProxy<Material>(m =>
+            {
+                m.ReviewerId = suggestion.ReviewerId;
+                m.GameId = suggestion.GameId;
+                m.Title = suggestion.Title;
+                m.Url = suggestion.Url;
+                m.Format = suggestion.Format;
+                m.PublishedAt = suggestion.PublishedAt;
+            });
+            Context.Materials.Add(material);
+        }
+
+        suggestion.Status = RequestStatus.Approved;
+        suggestion.DecidedAt = now;
+        suggestion.MaterialId = material.Id;
+
+        return material;
     }
 
     private ReviewCriterionScore CreateScore(int criterionId, byte score) =>

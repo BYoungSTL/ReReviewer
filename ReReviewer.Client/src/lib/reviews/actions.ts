@@ -6,15 +6,18 @@ import { userApi } from "@/lib/api/client";
 import { API_UNAVAILABLE, problemMessage } from "@/lib/api/errors";
 import { reviewerTag, userTag } from "@/lib/api/public";
 import type { ReviewViewModel } from "@/lib/api/schema";
+import { MATERIAL_ERRORS } from "@/lib/materials/constants";
 import { CRITERION_FIELD, REQUIRED_CRITERION_FIELD } from "./criteria";
+import { MAX_NEW_MATERIALS, readNewMaterials, type NewMaterialValues } from "./new-materials";
 
 // Значения формы возвращаются при ошибке: после Server Action React сбрасывает поля к значениям по умолчанию.
-// criterionScores: Id критерия → процент от 0 до 100 строкой.
+// criterionScores: Id критерия → процент от 0 до 100 строкой. newMaterials — материалы, которых у обзорщика ещё нет.
 export type ReviewFormValues = {
   text: string;
   score: number | null;
   materialIds: string[];
   criterionScores: Record<string, string>;
+  newMaterials: NewMaterialValues[];
 };
 
 export type ReviewFormState = {
@@ -27,7 +30,13 @@ const CRITERIA_MISSING = "Оцените каждый критерий.";
 
 // Новый отзыв о своём профиле форма не показывает, а эту ошибку владелец встретит, правя отзыв, написанный до привязки.
 // Оценку каждого критерия проверяет и форма, но набор критериев мог измениться, пока страница была открыта.
+// Ошибки новых материалов — как у отдельной заявки на материал, но с подсказкой, что делать в форме отзыва.
 const KNOWN_ERRORS: Record<string, string> = {
+  ...MATERIAL_ERRORS,
+  "A material with this link already exists.": "Материал с одной из ссылок уже есть на сайте. Если он этого обзорщика, отметьте его в списке.",
+  "Game not found.": "Выберите игру для каждого нового материала.",
+  [`A review can add at most ${MAX_NEW_MATERIALS} new materials.`]: `В отзыв можно добавить не больше ${MAX_NEW_MATERIALS} новых материалов.`,
+  "Each new material must have its own link.": "У каждого нового материала должна быть своя ссылка.",
   "You cannot review your own reviewer profile.": "Это ваш профиль обзорщика: оценивать самого себя нельзя, поэтому отзыв о нём не изменить.",
   "Every criterion must be scored.": CRITERIA_MISSING,
   "Criterion score must be between 0 and 100.": "Оценка по критерию — от 0 до 100 %.",
@@ -71,6 +80,10 @@ async function saveReview(
   // Критерии форма помечает скрытыми полями; оценку ставит ползунок, пока его не тронули — её нет.
   if (form.getAll(REQUIRED_CRITERION_FIELD).some((id) => !(String(id) in values.criterionScores)))
     return failure(CRITERIA_MISSING);
+  // Остальное о новых материалах (ссылка http(s), игра есть, ссылка не занята) проверяет API.
+  if (values.newMaterials.some((material) => !material.title)) return failure("Укажите название каждого нового материала.");
+  if (values.newMaterials.some((material) => !material.url)) return failure("Укажите ссылку на каждый новый материал.");
+  if (values.newMaterials.some((material) => !material.gameId)) return failure(KNOWN_ERRORS["Game not found."]);
 
   // Модель запроса общая с ответом (см. README), поэтому здесь есть и поля, которые API при сохранении игнорирует:
   // автора он берёт из токена, а имена, статус и даты заполняет сам. При правке он не меняет и обзорщика.
@@ -85,6 +98,15 @@ async function saveReview(
       criterionId: Number(criterionId),
       score: Number(score),
       criterionTitle: null,
+    })),
+    newMaterials: values.newMaterials.map((material) => ({
+      gameId: material.gameId,
+      title: material.title,
+      url: material.url,
+      format: material.format,
+      publishedAt: material.publishedAt || null,
+      gameTitle: null,
+      status: null,
     })),
     userName: null,
     userReviewerId: null,
@@ -126,5 +148,6 @@ function readValues(form: FormData): ReviewFormValues {
     score: Number.isInteger(score) && score >= 1 && score <= 10 ? score : null,
     materialIds: form.getAll("material").map(String),
     criterionScores,
+    newMaterials: readNewMaterials(form),
   };
 }

@@ -42,6 +42,7 @@ async function Queue({ searchParams }: Pick<PageProps<"/admin/reviews">, "search
       <p className="text-muted-foreground">
         Ждут проверки: {queue.totalCount} {pluralize(queue.totalCount, "отзыв", "отзыва", "отзывов")}.
         Первым идёт тот, что ждёт дольше всех. Изменённый автором отзыв снова попадает в очередь.
+        Новые материалы из отзыва решаются вместе с ним: одобрение добавит их обзорщику, отклонение — отклонит.
       </p>
       {queue.items.length === 0 && <p className="text-muted-foreground">На этой странице отзывов больше нет.</p>}
       {queue.items.map((review) => (

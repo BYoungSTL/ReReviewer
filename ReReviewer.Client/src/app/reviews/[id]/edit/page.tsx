@@ -4,7 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 import { ReviewForm } from "@/components/review-form";
 import { failed, userApi } from "@/lib/api/client";
-import { getCriteria, getReviewer, getReviewerMaterials } from "@/lib/api/public";
+import { getCriteria, getGameOptions, getReviewer, getReviewerMaterials } from "@/lib/api/public";
 import type { ReviewViewModel } from "@/lib/api/schema";
 import { updateReview, type ReviewFormValues } from "@/lib/reviews/actions";
 
@@ -32,9 +32,10 @@ async function EditReview({ params }: Pick<PageProps<"/reviews/[id]/edit">, "par
   const review = (myReviews ?? failed(response)).find((review) => review.id === id);
   if (!review) notFound();
 
-  const [reviewer, materials, criteria] = await Promise.all([
+  const [reviewer, materials, games, criteria] = await Promise.all([
     getReviewer(review.reviewerId),
     getReviewerMaterials(review.reviewerId),
+    getGameOptions(),
     getCriteria(),
   ]);
   if (!reviewer) notFound();
@@ -55,6 +56,7 @@ async function EditReview({ params }: Pick<PageProps<"/reviews/[id]/edit">, "par
         key={review.updatedAt ?? review.createdAt}
         action={updateReview.bind(null, id)}
         materials={materials}
+        games={games}
         criteria={criteria}
         initialValues={formValues(review)}
         submitLabel="Сохранить изменения"
@@ -73,4 +75,12 @@ const formValues = (review: ReviewViewModel): ReviewFormValues =>
     score: review.score,
     materialIds: review.materials.map((material) => material.id),
     criterionScores: Object.fromEntries(review.criterionScores.map((score) => [score.criterionId, String(score.score)])),
+    // Ждущие проверки или отклонённые вместе с отзывом: при сохранении они отправятся снова.
+    newMaterials: review.newMaterials.map((material) => ({
+      title: material.title,
+      url: material.url,
+      gameId: material.gameId,
+      format: material.format,
+      publishedAt: material.publishedAt ?? "",
+    })),
   });

@@ -68,6 +68,36 @@ public class ReviewAppServiceTests
         await _reviews.DidNotReceiveWithAnyArgs().CreateAsync(default, default, default!, default);
     }
 
+    [Fact]
+    public async Task SaveReviewAsync_NewMaterials_AreTrimmedAndParsed()
+    {
+        var gameId = Guid.NewGuid();
+        _reviews.CreateAsync(UserId, ReviewerId, Arg.Any<ReviewInput>(), Arg.Any<CancellationToken>()).Returns(new Review { Id = Guid.NewGuid() });
+        var review = NewReview();
+        review.NewMaterials = [new() { GameId = gameId, Title = "  Разбор  ", Url = " https://example.com/a ", Format = "podcast", PublishedAt = new DateOnly(2026, 9, 1) }];
+
+        await _service.SaveReviewAsync(review);
+
+        await _reviews.Received(1).CreateAsync(UserId, ReviewerId, Arg.Is<ReviewInput>(i =>
+            i.NewMaterials!.Single() == new NewMaterialInput(gameId, "Разбор", "https://example.com/a", MaterialFormat.Podcast, new DateOnly(2026, 9, 1))),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Theory]
+    [InlineData("", "https://example.com/a", "Article", "Material title must not be empty.")]
+    [InlineData("Разбор", "javascript:alert(1)", "Article", "Material link must be an http or https address.")]
+    [InlineData("Разбор", "https://example.com/a", "Book", "Unknown material format 'Book'. Allowed: Article, Video, Stream, Podcast.")]
+    public async Task SaveReviewAsync_InvalidNewMaterial_ThrowsBeforeCallingService(string title, string url, string format, string message)
+    {
+        var review = NewReview();
+        review.NewMaterials = [new() { GameId = Guid.NewGuid(), Title = title, Url = url, Format = format }];
+
+        var exception = await Should.ThrowAsync<ValidationException>(() => _service.SaveReviewAsync(review));
+
+        exception.Message.ShouldBe(message);
+        await _reviews.DidNotReceiveWithAnyArgs().CreateAsync(default, default, default!, default);
+    }
+
     #endregion
 
     #region Чтение
@@ -119,6 +149,31 @@ public class ReviewAppServiceTests
         result.Materials.Select(m => m.Title).ShouldBe(["А", "Б"]);
         result.Materials.Select(m => m.Format).ShouldBe(["Article", "Video"]);
         result.CriterionScores.Select(s => s.CriterionTitle).ShouldBe(["Глубина", "Подача"]);
+    }
+
+    // Одобренные вместе с отзывом материалы уже в Materials, поэтому в NewMaterials только неодобренные.
+    [Fact]
+    public async Task GetReviewAsync_NewMaterials_SkipApproved()
+    {
+        var game = new Game { Id = Guid.NewGuid(), Title = "Игра" };
+        var review = new Review
+        {
+            Id = Guid.NewGuid(),
+            User = new User { Name = "player" },
+            Reviewer = new Reviewer { FullName = "Обзорщик" },
+            MaterialSuggestions =
+            [
+                new() { Title = "Одобрен", Url = "https://example.com/a", Status = RequestStatus.Approved, Game = game },
+                new() { GameId = game.Id, Title = "Ждёт", Url = "https://example.com/b", Format = MaterialFormat.Stream, Status = RequestStatus.Pending, Game = game }
+            ]
+        };
+        _reviews.GetByIdAsync(review.Id, Arg.Any<CancellationToken>()).Returns(review);
+
+        var result = await _service.GetReviewAsync(review.Id);
+
+        var material = result.NewMaterials.ShouldHaveSingleItem();
+        (material.GameId, material.Title, material.Url, material.Format, material.GameTitle, material.Status)
+            .ShouldBe((game.Id, "Ждёт", "https://example.com/b", "Stream", "Игра", "Pending"));
     }
 
     [Fact]

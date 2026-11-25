@@ -59,7 +59,7 @@ async function Edit({ params }: Pick<PageProps<"/reviewers/[id]/edit">, "params"
       <div className="flex flex-col gap-2">
         <h1 className="text-3xl leading-tight font-bold">Редактирование профиля</h1>
         <p className="text-muted-foreground">
-          Так ваш профиль {profileLink} видят читатели. Знаки выдаёт администрация сайта, а материалы добавляют модераторы.
+          Так ваш профиль {profileLink} видят читатели. Знаки выдаёт администрация сайта, а материалы появляются после проверки модератором — предложить новый можно в блоке «Материалы» на странице профиля.
         </p>
       </div>
       <ReviewerProfileForm reviewer={reviewer} genres={sortedGenres} outlets={sortedOutlets} />
